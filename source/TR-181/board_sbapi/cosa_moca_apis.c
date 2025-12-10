@@ -598,13 +598,18 @@ CosaDmlMocaIfReset
 		CcspTraceWarning(("Provisioning state of MoCA before Reset. CosaDmlMocaIfReset -- ProvisioningFilename:%s, ProvisioningServerAddress:%s, ProvisioningServer ddressType:%s\n", MCfg->X_CISCO_COM_ProvisioningFilename, MCfg->X_CISCO_COM_ProvisioningServerAddress, (MCfg->X_CISCO_COM_ProvisioningServerAddressType==1)?"IPv4":"IPv6"));
 
 	        /* Get default value of MoCA Interface*/
-		moca_GetIfConfig(ulInterfaceIndex, &mocaCfg);
-
+                if (STATUS_SUCCESS != moca_GetIfConfig(ulInterfaceIndex, &mocaCfg)) {
+                    CcspTraceWarning(("moca_GetIfConfig failed\n"));
+                    return ANSC_STATUS_FAILURE;
+                }
+                /* Coverity CID 414230: STRING_NULL — ensure HAL string fields are terminated */
+                mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
+                mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
 		/* MoCA Interface Setting to FALSE and syscfg commit it. That mean, we are disabled the MoCA interface here */
 		CcspTraceWarning(("%s > Disabling MoCA Interface...\n", __func__));
 		pCfg->bEnabled = FALSE;
-		mocaCfg.bEnabled = pCfg->bEnabled;
-		return_status = moca_SetIfConfig(ulInterfaceIndex, &mocaCfg);
+                mocaCfg.bEnabled = pCfg->bEnabled;
+                return_status = moca_SetIfConfig(ulInterfaceIndex, &mocaCfg);
 
 		if(return_status == STATUS_SUCCESS)
 		{
@@ -627,9 +632,8 @@ CosaDmlMocaIfReset
 		/* MoCA Interface Setting to TRUE and syscfg commit it. That mean, we are Enabled the MoCA interface here */
 		CcspTraceWarning(("%s > Enabling MoCA Interface...\n", __func__));
 		pCfg->bEnabled = TRUE;
-		mocaCfg.bEnabled = pCfg->bEnabled;
-		return_status = moca_SetIfConfig(ulInterfaceIndex, &mocaCfg);
-
+                mocaCfg.bEnabled = pCfg->bEnabled;
+                return_status = moca_SetIfConfig(ulInterfaceIndex, &mocaCfg);
 		if(return_status == STATUS_SUCCESS)
 		{
 			if (syscfg_set_commit(NULL, "moca_enabled", "1") != 0)
@@ -1053,6 +1057,11 @@ CosaDmlMocaIfGetCfg
            return ANSC_STATUS_FAILURE;
         }
 		
+        /* Coverity CID 348463: STRING_NULL — ensure HAL string fields are terminated.
+         * NOTE: Do NOT treat UCHAR masks as strings (FreqCurrentMaskSetting/NodeTabooMask/ChannelScanMask).
+         */
+        mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1]                 = '\0';
+        mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
 
         /* XF3-5279 - PCOSA_DML_MOCA_IF_CFG instancenumber starts from 1.
          * but moca_cfg_t instance number starts from 0.
@@ -1071,8 +1080,8 @@ CosaDmlMocaIfGetCfg
 		if ( ( 1 != pCfg->bSnmpUpdate ) && ( moca_enable_db != pCfg->bEnabled ) )
 		{
 			AnscTraceWarning(("syscfg db and moca driver value are not in sync, setting db value to driver\n"));
-			mocaCfg.bEnabled=moca_enable_db;
-	              if ( moca_SetIfConfig(uIndex, &mocaCfg) != STATUS_SUCCESS)
+                        mocaCfg.bEnabled=(BOOL)moca_enable_db;
+                  if ( moca_SetIfConfig(uIndex, &mocaCfg) != STATUS_SUCCESS)
                         {
                          AnscTraceWarning(("moca_SetIfConfig returns error\n"));
                          return ANSC_STATUS_FAILURE;

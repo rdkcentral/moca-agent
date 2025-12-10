@@ -22,7 +22,6 @@
 #include "moca_hal.h"
 #include "ccsp_trace.h"
 #include "syscfg/syscfg.h"
-
 extern ANSC_HANDLE g_MoCAObject ;
 
 bool g_bMocaEnable_bkup = false;
@@ -297,6 +296,10 @@ int rollback_moca_conf()
     memset(&mocaCfg, 0, sizeof(moca_cfg_t));
     if( STATUS_SUCCESS == moca_GetIfConfig(0, &mocaCfg))
     {
+        /* Coverity CID 348464: STRING_NULL — ensure HAL string fields are terminated */
+            mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
+      	    mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
+
         if( g_bMocaEnable_bkup != mocaCfg.bEnabled )
         {
             CcspTraceWarning(("%s: updating hal with backup value %d \n", __FUNCTION__, g_bMocaEnable_bkup ));

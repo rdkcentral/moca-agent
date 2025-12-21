@@ -1,0 +1,495 @@
+{
+  "build_options": {
+    "skip_header_dependencies": false,
+    "skip_library_dependencies": false,
+    "clean_before_build": true,
+    "auto_discover_libraries": true
+  },
+  "native_component": {
+    "name": "moca-agent",
+    "build_system": "autotools",
+    "cflags": [
+      "-DSAFEC_DUMMY_API",
+      "-D_ANSC_USE_OPENSSL_",
+      "-D_NO_PKI_KB5_SUPPORT",
+      "-D_DEBUG"
+    ],
+    "system_includes": [
+      "/usr/include/dbus-1.0",
+      "/usr/lib/*/dbus-1.0/include"
+    ],
+    "dependency_include_dirs": [
+      "$HOME/usr/include/rdkb/moca_hal"
+    ],
+    "ldflags": [
+      "-Wl,--allow-shlib-undefined",
+      "-Wl,--unresolved-symbols=ignore-all"
+    ],
+    "configure_options": [],
+    "source_header_patches": [
+      {
+        "source": "$HOME/usr/include/rdkb/ccsp_message_bus.h",
+        "patch_line": "typedef struct _CCSP_MESSAGE_BUS_CONNECTION",
+        "insert_before": "typedef struct DBusLoop DBusLoop;"
+      },
+      {
+        "source": "source/TR-181/board_sbapi/cosa_moca_apis.c",
+        "type": "replace",
+        "sed_command": "s/BOOL MoCA_SetForceEnable(PCOSA_DML_MOCA_IF_CFG pCfg, PCOSA_DML_MOCA_CFG  pFCfg)$/BOOL MoCA_SetForceEnable(PCOSA_DML_MOCA_IF_CFG pCfg, PCOSA_DML_MOCA_CFG  pFCfg, BOOL bValue)/g"
+      }
+    ],
+    "pre_build_commands": [
+      {
+        "description": "Generate dm_pack_datamodel.c from XML",
+        "command": "python3 $HOME/usr/include/rdkb/dm_pack_code_gen.py config/TR181-MoCA.XML source/MoCASsp/dm_pack_datamodel.c"
+      }
+    ],
+    "component_header_dirs": [],
+    "component_libraries": [],
+    "component_install_subdir": ""
+  },
+  "header_dependencies": [
+    {
+      "name": "core-net-library",
+      "repository": "https://github.com/rdkcentral/core-net-library.git",
+      "branch": "main",
+      "header_paths": [
+        {
+          "source": "source",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "gmock-broadband",
+      "repository": "https://github.com/rdkcentral/gmock-broadband.git",
+      "branch": "develop",
+      "header_paths": [
+        {
+          "source": "docker_scripts/common_headers",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "rdkb-halif-moca",
+      "repository": "https://github.com/rdkcentral/rdkb-halif-moca.git",
+      "branch": "main",
+      "header_paths": [
+        {
+          "source": "include",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "rbus",
+      "repository": "https://github.com/rdkcentral/rbus.git",
+      "branch": "main",
+      "header_paths": [
+        {
+          "source": "include",
+          "destination": "rbus"
+        }
+      ]
+    },
+    {
+      "name": "WebconfigFramework",
+      "repository": "https://github.com/rdkcentral/WebconfigFramework.git",
+      "branch": "develop",
+      "header_paths": [
+        {
+          "source": "include",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "libSyscallWrapper",
+      "repository": "https://github.com/rdkcentral/libSyscallWrapper.git",
+      "branch": "develop",
+      "header_paths": [
+        {
+          "source": "source",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "trower-base64",
+      "repository": "https://github.com/xmidt-org/trower-base64.git",
+      "branch": "main",
+      "header_paths": [
+        {
+          "source": "include/trower-base64",
+          "destination": "."
+        },
+        {
+          "source": "include/trower-base64",
+          "destination": "trower-base64"
+        }
+      ]
+    },
+    {
+      "name": "telemetry",
+      "repository": "https://github.com/rdkcentral/telemetry.git",
+      "branch": "main",
+      "header_paths": [
+        {
+          "source": "include",
+          "destination": "telemetry"
+        },
+        {
+          "source": "include",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "halinterface",
+      "repository": "https://code.rdkcentral.com/r/rdkb/components/opensource/ccsp/halinterface",
+      "branch": "rdk-next",
+      "header_paths": [
+        {
+          "source": ".",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "OvsAgent",
+      "repository": "https://code.rdkcentral.com/r/rdk/components/generic/OvsAgent",
+      "branch": "rdk-next",
+      "header_paths": [
+        {
+          "source": "source/include",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "Utopia",
+      "repository": "https://code.rdkcentral.com/r/rdkb/components/opensource/ccsp/Utopia",
+      "branch": "rdk-next",
+      "header_paths": [
+        {
+          "source": "source/include/sysevent",
+          "destination": "sysevent"
+        },
+        {
+          "source": "source/include/syscfg",
+          "destination": "syscfg"
+        },
+        {
+          "source": "source/include",
+          "destination": "utctx"
+        },
+        {
+          "source": "source/include",
+          "destination": "."
+        },
+        {
+          "source": "source/utapi/lib",
+          "destination": "utapi"
+        },
+        {
+          "source": "source/include/ulog",
+          "destination": "ulog"
+        },
+        {
+          "source": "source/util/utils",
+          "destination": "."
+        },
+        {
+          "source": "source/sysevent/lib",
+          "destination": "sysevent"
+        },
+        {
+          "source": "source/util/print_uptime",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "hotspot",
+      "repository": "https://code.rdkcentral.com/r/rdkb/components/opensource/ccsp/hotspot",
+      "branch": "rdk-next",
+      "header_paths": [
+        {
+          "source": "source/HotspotApi",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "CcspCommonLibrary",
+      "repository": "https://github.com/rdkcentral/common-library.git",
+      "branch": "feature/native_build_for_coverity",
+      "header_paths": [
+        {
+          "source": "source/ccsp/include",
+          "destination": "."
+        },
+        {
+          "source": "source/ccsp/components/include",
+          "destination": "."
+        },
+        {
+          "source": "source/ccsp/custom",
+          "destination": "."
+        },
+        {
+          "source": "source/cosa/include",
+          "destination": "."
+        },
+        {
+          "source": "source/cosa/include/linux",
+          "destination": "linux"
+        },
+        {
+          "source": "source/cosa/include/linux",
+          "destination": "."
+        },
+        {
+          "source": "source/cosa/package/slap/include",
+          "destination": "."
+        },
+        {
+          "source": "source/debug_api/include/",
+          "destination": "."
+        },
+        {
+          "source": "source/util_api/http/include/",
+          "destination": "."
+        },
+        {
+          "source": "source/util_api/ansc/include/",
+          "destination": "."
+        },
+        {
+          "source": "source/ccsp/components/common/MessageBusHelper/include/",
+          "destination": "."
+        },
+        {
+          "source": "source/dm_pack/",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "rdk-libunpriv",
+      "repository": "https://github.com/rdkcentral/rdk-libunpriv.git",
+      "branch": "develop",
+      "header_paths": [
+        {
+          "source": "source",
+          "destination": "."
+        }
+      ]
+    },
+    {
+      "name": "rdk_logger",
+      "repository": "https://github.com/rdkcentral/rdk_logger.git",
+      "branch": "develop",
+      "header_paths": [
+        {
+          "source": "include",
+          "destination": "."
+        }
+      ]
+    }
+  ],
+  "library_dependencies": [
+    {
+      "name": "rbus",
+      "repository": "https://github.com/rdkcentral/rbus.git",
+      "branch": "main",
+      "build_system": "cmake",
+      "dependency_script": null,
+      "cmake_options": [
+        "-DBUILD_FOR_DESKTOP=ON",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "core-net-library",
+      "repository": "https://github.com/rdkcentral/core-net-library.git",
+      "branch": "main",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "trower-base64",
+      "repository": "https://github.com/xmidt-org/trower-base64.git",
+      "branch": "v1.2.7",
+      "build_system": "meson",
+      "dependency_script": null,
+      "meson_options": [],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "libSyscallWrapper",
+      "repository": "https://github.com/rdkcentral/libSyscallWrapper.git",
+      "branch": "develop",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "configure_options": [
+        "--without-rdklogger"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "rdk_logger",
+      "repository": "https://github.com/rdkcentral/rdk_logger.git",
+      "branch": "develop",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "jsoncpp",
+      "repository": "https://github.com/open-source-parsers/jsoncpp.git",
+      "branch": "master",
+      "build_system": "cmake",
+      "dependency_script": null,
+      "cmake_options": [
+        "-DBUILD_SHARED_LIBS=ON",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "rdk-libunpriv",
+      "repository": "https://github.com/rdkcentral/rdk-libunpriv.git",
+      "branch": "develop",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "WebconfigFramework",
+      "repository": "https://github.com/rdkcentral/WebconfigFramework.git",
+      "branch": "develop",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "configure_options": [
+        "CPPFLAGS=-I$HOME/usr/local/include -I$HOME/usr/local/include/rtmessage -I$HOME/usr/include/rdkb",
+        "LDFLAGS=-L$HOME/usr/local/lib"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "hal_moca",
+      "repository": "https://github.com/rdkcentral/hardware-abstraction-layer.git",
+      "branch": "develop",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "source_subdir": "source/moca",
+      "configure_options": [
+        "CPPFLAGS=-I$HOME/usr/include/rdkb",
+        "LDFLAGS=-L$HOME/usr/local/lib"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "telemetry",
+      "repository": "https://github.com/rdkcentral/telemetry.git",
+      "branch": "main",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "configure_options": [
+        "CPPFLAGS=-I$HOME/usr/include/rdkb",
+        "LDFLAGS=-L$HOME/usr/local/lib"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "CcspCommonLibrary",
+      "repository": "https://github.com/rdkcentral/common-library.git",
+      "branch": "feature/native_build_for_coverity",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "source_patches": [
+        {
+          "file": "source/ccsp/include/ccsp_message_bus.h",
+          "type": "insert",
+          "patch_line": "typedef struct _CCSP_MESSAGE_BUS_CONNECTION",
+          "insert_before": "typedef struct DBusLoop DBusLoop;"
+        }
+      ],
+      "configure_options": [
+        "CPPFLAGS=-I$HOME/usr/include/rdkb -I$HOME/usr/local/include -I$HOME/usr/local/include/rtmessage -I/usr/include/dbus-1.0 -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include -DSAFEC_DUMMY_API -D_ANSC_USE_OPENSSL_ -D_NO_PKI_KB5_SUPPORT",
+        "LDFLAGS=-L$HOME/usr/local/lib -L$HOME/usr/local/lib/x86_64-linux-gnu -Wl,-rpath,$HOME/usr/local/lib -Wl,-rpath,$HOME/usr/local/lib/x86_64-linux-gnu",
+        "LIBS=-ldbus-1 -lpthread"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    },
+    {
+      "name": "Utopia",
+      "repository": "https://github.com/rdkcentral/utopia.git",
+      "branch": "main",
+      "build_system": "autotools",
+      "dependency_script": null,
+      "source_patches": [
+        {
+          "file": "source/util/print_uptime/Makefile.am",
+          "type": "replace",
+          "search": "-I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 ${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include",
+          "replace": "$(DBUS_CFLAGS)"
+        },
+        {
+          "file": "source/igd/src/Makefile.am",
+          "type": "replace",
+          "search": "IGD_LDFLAGS = -lthreadutil -Bdynamic -lupnp -lrdkloggers -pthread",
+          "replace": "IGD_LDFLAGS = -Bdynamic -lupnp -lrdkloggers -pthread"
+        }
+      ],
+      "configure_options": [
+        "--enable-silent-rules",
+        "CPPFLAGS=-I$HOME/usr/include/rdkb -I/usr/include/tirpc -I/usr/include/dbus-1.0 -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include -DSAFEC_DUMMY_API -D_GNU_SOURCE -Dget_current_wan_ifname=__get_current_wan_ifname_stub",
+        "CFLAGS=-include stdint.h -include errno.h -include rdk_logger.h -Wno-cpp",
+        "LDFLAGS=-L$HOME/usr/local/lib -L$HOME/usr/local/lib/x86_64-linux-gnu -Wl,-rpath,$HOME/usr/local/lib/x86_64-linux-gnu -Wl,--no-as-needed -Wl,--allow-shlib-undefined -Wl,--unresolved-symbols=ignore-all",
+        "LIBS=-lccsp_common -lsecure_wrapper -ltirpc -lupnp -lrdkloggers"
+      ],
+      "library_patterns": [
+        "*.so*"
+      ],
+      "install_to_prefix": true
+    }
+  ]
+}

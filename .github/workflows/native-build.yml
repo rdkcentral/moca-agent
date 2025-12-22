@@ -7,7 +7,7 @@ on:
     branches: [ main, 'sprint/**', 'release/**', topic/RDK*, develop ]
 
 jobs:
-  build-entservices-on-pr:
+  build-native-moca-agent:
     name: Build moca-agent component in github rdkcentral
     runs-on: ubuntu-latest
     container:

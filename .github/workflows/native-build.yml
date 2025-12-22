@@ -1,4 +1,4 @@
-name: Build MoCA Agent  Component in Native Environment
+name: Build MoCA Agent Component in Native Environment
 
 on:
   push:

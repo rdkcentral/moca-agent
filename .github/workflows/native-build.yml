@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-entservices-on-pr:
-    name: Build common-library component in github rdkcentral
+    name: Build moca-agent component in github rdkcentral
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/rdkcentral/docker-rdk-ci:latest

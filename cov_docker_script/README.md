@@ -1,889 +1,476 @@
-# Generic Component Build System
+# Coverity Build System for RDK-B Components
 
-Complete dependency management and build system for native components. Fully generic and driven by `component_config.json`.
-
----
-
-## Table of Contents
-- [Overview](#overview)
-- [Quick Start](#quick-start)
-- [Script Usage](#script-usage)
-- [JSON Configuration Reference](#json-configuration-reference)
-- [Examples](#examples)
-- [Advanced Usage](#advanced-usage)
-- [Troubleshooting](#troubleshooting)
-
----
-
-## Overview
-
-### What It Does
-
-Automates the complete build process for native components:
-1. **Clones dependencies** from git repositories
-2. **Builds libraries** using CMake, Meson, or Autotools
-3. **Copies headers** to standard location
-4. **Builds your component** using its build system
-5. **Installs everything** to predictable locations
-
-### Key Features
-
-- ✅ **100% Generic** - Works with any component
-- ✅ **JSON-Driven** - All configuration in one file
-- ✅ **Multi Build System** - Supports autotools, CMake, Meson
-- ✅ **Validated** - Checks prerequisites and configuration
-- ✅ **Portable** - Copy to any component and reuse
-
-### Files
-
-| File | Purpose |
-|------|---------|
-| `setup_dependencies.sh` | Install all header and library dependencies |
-| `build_native.sh` | Build your component |
-| `component_config.json` | Configuration file (customize this) |
-| `common_external_build.sh` | Orchestrator (runs both scripts) |
-
-### Directory Structure After Build
-
-```
-$HOME/
-├── usr/
-│   ├── include/rdkb/        # All headers installed here
-│   │   ├── ccsp/
-│   │   ├── rbus/
-│   │   └── hal_interfaces/
-│   └── local/
-│       └── lib/             # All libraries installed here
-│           ├── librbus.so
-│           ├── libtrower-base64.so
-│           └── your-component/
-└── build/                   # Temporary (auto-cleaned)
-```
-
----
+**Generic, reusable build system for any RDK-B component.** Just copy the scripts and customize `component_config.json`.
 
 ## Quick Start
 
-### For Existing Components (Already Configured)
+### Complete Build (Recommended)
 
 ```bash
-cd your-component/cov_docker_script
-
-# Install all dependencies
-./setup_dependencies.sh
-
-# Build your component
-./build_native.sh
-
-# Or run both with one command
+cd /path/to/component/cov_docker_script
 ./common_external_build.sh
 ```
 
-### For New Components
+This runs the complete 2-step pipeline:
+1. **Setup Dependencies** - Clones repos, copies headers, builds libraries
+2. **Build Component** - Applies patches, builds component, installs libraries
+
+### Clean Build
 
 ```bash
-# 1. Copy the build system to your component
-mkdir -p your-component/cov_docker_script
-cd your-component/cov_docker_script
-
-# Copy from template (e.g., moca-agent)
-cp /path/to/moca-agent/cov_docker_script/setup_dependencies.sh .
-cp /path/to/moca-agent/cov_docker_script/build_native.sh .
-cp /path/to/moca-agent/cov_docker_script/common_external_build.sh .
-cp /path/to/moca-agent/cov_docker_script/component_config.json .
-
-# Make scripts executable
-chmod +x *.sh
-
-# 2. Edit component_config.json for your component
-vi component_config.json
-# Update: name, build_system, cflags, dependencies
-
-# 3. Build
-./setup_dependencies.sh
-./build_native.sh
+CLEAN_BUILD=true ./common_external_build.sh
 ```
 
-**Minimum changes needed in JSON:**
-1. `native_component.name` → Your component name
-2. `native_component.build_system` → autotools/cmake/meson
-3. `native_component.cflags` → Your compiler flags
-4. `header_dependencies` → Your header-only repos
-5. `library_dependencies` → Your library repos
+Removes all previous build artifacts before starting.
 
----
+## Scripts Overview
 
-## Script Usage
+### 1. common_build_utils.sh
 
-### setup_dependencies.sh
+**Purpose:** Shared utility library with common functions used by all build scripts.
 
-Installs all dependencies defined in `component_config.json`.
-
-**What it does:**
-1. Clones header-only dependencies
-2. Copies headers to `$HOME/usr/include/rdkb/`
-3. Clones library dependencies
-4. Builds libraries (CMake/Meson/Autotools)
-5. Installs libraries to `$HOME/usr/local/lib/`
-6. Cleans up build artifacts
+**Key Functions:**
+- `log()`, `ok()`, `warn()`, `err()`, `step()` - Color-coded logging
+- `expand_path()` - Expands `$HOME` variables in paths
+- `check_dependencies()` - Validates required system tools (git, jq, gcc, make)
+- `clone_repo()` - Clones git repositories with depth 1
+- `copy_headers()` - Copies header files from source to destination
+- `apply_patch()` - Applies patches using Python3 for safe string replacement
+- `build_autotools()`, `build_cmake()`, `build_meson()` - Build functions for different systems
+- `execute_commands()` - Runs custom command sequences
+- `copy_libraries()` - Finds and copies library files (.so, .a, .la)
 
 **Usage:**
 ```bash
+# This script is sourced by other scripts, not run directly
+source common_build_utils.sh
+```
+
+**Auto-configured:**
+- Validates presence of git, jq, gcc, make
+- Sets up color-coded terminal output
+- Exports all functions for use in other scripts
+
+---
+
+### 2. setup_dependencies.sh
+
+**Purpose:** Clones dependency repositories, copies headers, and builds required libraries.
+
+**What it does:**
+1. Reads dependency list from `component_config.json`
+2. Clones each repository to `$HOME/build/<repo-name>`
+3. Copies headers to `$HOME/usr/include/rdkb/`
+4. Builds libraries (if `build` section present)
+5. Installs libraries to `$HOME/usr/local/lib/` and `$HOME/usr/lib/`
+6. Configures PKG_CONFIG_PATH and LD_LIBRARY_PATH
+
+**Usage:**
+```bash
+# Use default config (component_config.json in same directory)
 ./setup_dependencies.sh
+
+# Use custom config file
+./setup_dependencies.sh /path/to/custom_config.json
+
+# Clean build (removes $HOME/build and $HOME/usr first)
+CLEAN_BUILD=true ./setup_dependencies.sh
+
+# Custom directories
+BUILD_DIR=/tmp/build USR_DIR=/opt/rdkb ./setup_dependencies.sh
 ```
 
 **Environment Variables:**
-```bash
-# Change installation paths
-export HEADER_PREFIX=$HOME/custom/include
-export INSTALL_PREFIX=$HOME/custom/lib
-export BUILD_DIR=/tmp/build
-export BUILD_JOBS=16
+- `BUILD_DIR` - Where to clone repos (default: `$HOME/build`)
+- `USR_DIR` - Install directory (default: `$HOME/usr`)
+- `CLEAN_BUILD` - Set to `true` to remove previous artifacts
 
-./setup_dependencies.sh
-```
-
-**Options via JSON:**
-```json
-{
-  "build_options": {
-    "skip_header_dependencies": false,    // Skip header cloning
-    "skip_library_dependencies": false,   // Skip library building
-    "clean_before_build": true            // Clean previous builds
-  }
-}
-```
+**Output:**
+- Headers: `$HOME/usr/include/rdkb/`
+- Libraries: `$HOME/usr/local/lib/` and `$HOME/usr/lib/`
 
 ---
 
-### build_native.sh
+### 3. build_native.sh
 
-Builds your native component.
+**Purpose:** Builds the native component after dependencies are setup.
 
 **What it does:**
-1. Reads component configuration from JSON
-2. Applies source patches if defined
-3. Runs pre-build commands
-4. Configures build system (./configure, cmake, or meson)
-5. Builds component with make/ninja
-6. Installs libraries and headers
+1. Reads component configuration from `component_config.json`
+2. Processes native component headers (copies to destination)
+3. Applies source patches (if configured)
+4. Configures build environment (PKG_CONFIG_PATH, LD_LIBRARY_PATH, CPPFLAGS, LDFLAGS)
+5. Runs autogen.sh or autoreconf (for autotools)
+6. Executes configure/cmake with specified options
+7. Builds component with make (parallel by default)
+8. Copies libraries to configured output path
 
 **Usage:**
 ```bash
+# Use defaults (assumes setup_dependencies.sh already run)
 ./build_native.sh
+
+# Specify custom config and component directory
+./build_native.sh /path/to/config.json /path/to/component
+
+# With environment overrides
+HEADER_PATH=/custom/include ./build_native.sh
 ```
 
-**Environment Variables:**
-```bash
-# Same as setup_dependencies.sh
-export HEADER_PREFIX=$HOME/custom/include
-export INSTALL_PREFIX=$HOME/custom/lib
-export BUILD_JOBS=8
+**Prerequisites:**
+- `setup_dependencies.sh` must have run successfully
+- Headers and libraries must be in `$HOME/usr/`
 
-./build_native.sh
-```
+**Output:**
+- Component libraries in path specified by `native_component.lib_output_path`
+- Default: `$HOME/usr/local/lib/`
 
 ---
 
-### common_external_build.sh
+### 4. common_external_build.sh
 
-Orchestrator that runs both scripts in sequence.
+**Purpose:** Orchestrates complete build pipeline (dependencies + component).
+
+**What it does:**
+1. Validates configuration and paths
+2. Runs `setup_dependencies.sh` (Step 1/2)
+3. Runs `build_native.sh` (Step 2/2)
+4. Displays progress banners and status
 
 **Usage:**
 ```bash
+# Complete build with defaults
 ./common_external_build.sh
+
+# With custom config and component directory
+./common_external_build.sh /path/to/config.json /path/to/component
+
+# Clean build
+CLEAN_BUILD=true ./common_external_build.sh
 ```
 
-Equivalent to:
-```bash
-./setup_dependencies.sh && ./build_native.sh
-```
+**This is the recommended entry point for complete builds.**
+
+**Output:**
+- Complete dependency setup
+- Built component with all libraries
+- Success/failure status for entire pipeline
 
 ---
 
-## JSON Configuration Reference
+### 5. component_config.json
 
-### Complete Structure
+**Purpose:** JSON configuration defining all dependencies and build settings.
 
-```json
-{
-  "build_options": { ... },
-  "native_component": { ... },
-  "header_dependencies": [ ... ],
-  "library_dependencies": [ ... ]
-}
-```
+**Key Sections:**
+- `dependencies.repos[]` - List of dependency repositories
+- `native_component` - Component-specific build configuration
+- `source_patches[]` - Patches to apply before building
 
----
+**Not a script, but required by all build scripts.**
 
-### build_options
-
-Controls global build behavior.
-
-```json
-{
-  "build_options": {
-    "skip_header_dependencies": false,
-    "skip_library_dependencies": false,
-    "clean_before_build": true,
-    "auto_discover_libraries": true
-  }
-}
-```
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `skip_header_dependencies` | boolean | false | Skip cloning/copying headers |
-| `skip_library_dependencies` | boolean | false | Skip building libraries |
-| `clean_before_build` | boolean | true | Remove previous installations |
-| `auto_discover_libraries` | boolean | true | Auto-find .so/.a files to install |
-
-**Use Cases:**
-- Incremental builds: `"clean_before_build": false`
-- Headers only: `"skip_library_dependencies": true`
-- Skip all deps: Both skip flags = `true`
+See **Configuration** section below for detailed format.
 
 ---
 
-### native_component
+## Configuration
 
-Your component's build configuration.
+All build configuration is in **`component_config.json`**. This file defines:
+- Dependencies to clone and build
+- Headers to copy
+- Patches to apply
+- Build settings
 
-#### Required Fields
+### Key Configuration Sections
 
-```json
-{
-  "native_component": {
-    "name": "my-component",
-    "build_system": "autotools"
-  }
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | **YES** | Component name |
-| `build_system` | string | **YES** | "autotools", "cmake", or "meson" |
-
-#### Compiler/Linker Flags
+#### Dependencies
 
 ```json
 {
-  "native_component": {
-    "cflags": ["-DSAFEC_DUMMY_API", "-D_DEBUG", "-O2"],
-    "ldflags": ["-Wl,--allow-shlib-undefined"],
-    "system_includes": ["/usr/include/dbus-1.0"],
-    "dependency_include_dirs": ["$HOME/usr/include/rdkb/hal"]
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `cflags` | array | Compiler flags |
-| `ldflags` | array | Linker flags |
-| `system_includes` | array | System header paths (supports *) |
-| `dependency_include_dirs` | array | Additional include paths |
-
-#### Build System Options
-
-**Autotools:**
-```json
-{
-  "build_system": "autotools",
-  "configure_options": ["--enable-shared", "--disable-static"]
-}
-```
-
-**CMake:**
-```json
-{
-  "build_system": "cmake",
-  "cmake_options": [
-    "-DCMAKE_BUILD_TYPE=Release",
-    "-DENABLE_TESTS=OFF"
-  ]
-}
-```
-
-**Meson:**
-```json
-{
-  "build_system": "meson",
-  "meson_options": ["-Dtests=disabled"]
-}
-```
-
-#### Source Patches
-
-**Insert text before a line:**
-```json
-{
-  "source_header_patches": [
-    {
-      "source": "$HOME/usr/include/rdkb/header.h",
-      "patch_line": "typedef struct SomeStruct",
-      "insert_before": "typedef struct PrereqStruct PrereqStruct;"
-    }
-  ]
-}
-```
-
-**Search and replace:**
-```json
-{
-  "source_header_patches": [
-    {
-      "source": "source/file.c",
-      "type": "replace",
-      "search": "old_function(arg1)",
-      "replace": "new_function(arg1, arg2)"
-    }
-  ]
-}
-```
-
-**Sed command:**
-```json
-{
-  "source_header_patches": [
-    {
-      "source": "source/file.c",
-      "type": "replace",
-      "sed_command": "s/OldFunc(\\(.*\\))$/NewFunc(\\1, NULL)/g"
-    }
-  ]
-}
-```
-
-#### Pre-Build Commands
-
-```json
-{
-  "pre_build_commands": [
-    {
-      "description": "Generate code from XML",
-      "command": "python3 $HOME/usr/include/rdkb/codegen.py input.xml output.c"
-    }
-  ]
-}
-```
-
-#### Component Installation
-
-**Install headers:**
-```json
-{
-  "component_header_dirs": [
-    {
-      "source": "include",
-      "destination": "mycomponent"
-    }
-  ]
-}
-```
-
-**Install libraries (manual patterns):**
-```json
-{
-  "component_libraries": ["source/**/*.so"],
-  "component_install_subdir": "mycomponent"
-}
-```
-
----
-
-### header_dependencies
-
-Header-only dependencies (no build required).
-
-```json
-{
-  "header_dependencies": [
-    {
-      "name": "rdkb-halif-wifi",
-      "repository": "https://github.com/rdkcentral/rdkb-halif-wifi.git",
-      "branch": "main",
-      "header_paths": [
-        {
-          "source": "include",
-          "destination": "."
+  "dependencies": {
+    "repos": [
+      {
+        "name": "repo-name",
+        "repo": "https://github.com/org/repo.git",
+        "branch": "main",
+        "header_paths": [
+          { "source": "include", "destination": "$HOME/usr/include/rdkb" }
+        ],
+        "build": {
+          "type": "autotools|cmake|meson|commands|script",
+          "configure_flags": "--prefix=$HOME/usr",
+          "parallel_make": true
         }
-      ]
-    }
-  ]
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Dependency name |
-| `repository` | string | Git URL |
-| `branch` | string | Git branch |
-| `header_paths` | array | Source→destination mappings |
-| `header_paths[].source` | string | Path in repo |
-| `header_paths[].destination` | string | Path under `$HOME/usr/include/rdkb/` |
-
----
-
-### library_dependencies
-
-Libraries that need to be built.
-
-**CMake Library:**
-```json
-{
-  "library_dependencies": [
-    {
-      "name": "rbus",
-      "repository": "https://github.com/rdkcentral/rbus.git",
-      "branch": "main",
-      "build_system": "cmake",
-      "cmake_options": ["-DBUILD_TESTING=OFF"]
-    }
-  ]
-}
-```
-
-**Autotools Library:**
-```json
-{
-  "library_dependencies": [
-    {
-      "name": "libsafec",
-      "repository": "https://github.com/rdkcentral/libsafec.git",
-      "branch": "main",
-      "build_system": "autotools",
-      "configure_options": ["--enable-shared"]
-    }
-  ]
-}
-```
-
-**Meson Library:**
-```json
-{
-  "library_dependencies": [
-    {
-      "name": "msgpack",
-      "repository": "https://github.com/msgpack/msgpack-c.git",
-      "branch": "master",
-      "build_system": "meson",
-      "meson_options": ["-Ddefault_library=shared"]
-    }
-  ]
-}
-```
-
-**With source subdirectory:**
-```json
-{
-  "name": "protobuf",
-  "repository": "https://github.com/protocolbuffers/protobuf.git",
-  "branch": "main",
-  "build_system": "cmake",
-  "source_subdir": "cmake",
-  "cmake_options": ["-Dprotobuf_BUILD_TESTS=OFF"]
-}
-```
-
-**With dependency script:**
-```json
-{
-  "name": "complex-lib",
-  "repository": "https://github.com/example/lib.git",
-  "branch": "main",
-  "build_system": "cmake",
-  "dependency_script": "setup_deps.sh",
-  "cmake_options": ["-DBUILD_SHARED_LIBS=ON"]
-}
-```
-
-**Complete field reference:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | YES | Library name |
-| `repository` | string | YES | Git URL |
-| `branch` | string | YES | Git branch |
-| `build_system` | string | YES | autotools/cmake/meson/custom |
-| `configure_options` | array | No | Autotools options |
-| `cmake_options` | array | No | CMake options |
-| `meson_options` | array | No | Meson options |
-| `source_subdir` | string | No | Build subdirectory |
-| `dependency_script` | string | No | Pre-build script |
-| `source_patches` | array | No | Patches to apply |
-
----
-
-## Examples
-
-### Example 1: Simple Autotools Component
-
-```json
-{
-  "build_options": {
-    "skip_header_dependencies": false,
-    "skip_library_dependencies": false,
-    "clean_before_build": true,
-    "auto_discover_libraries": true
-  },
-  "native_component": {
-    "name": "simple-daemon",
-    "build_system": "autotools",
-    "cflags": ["-O2", "-Wall"],
-    "system_includes": [],
-    "dependency_include_dirs": [],
-    "ldflags": [],
-    "configure_options": ["--enable-shared"],
-    "source_header_patches": [],
-    "pre_build_commands": [],
-    "component_header_dirs": [],
-    "component_libraries": [],
-    "component_install_subdir": ""
-  },
-  "header_dependencies": [],
-  "library_dependencies": []
-}
-```
-
-### Example 2: WiFi Agent with Dependencies
-
-```json
-{
-  "build_options": {
-    "skip_header_dependencies": false,
-    "skip_library_dependencies": false,
-    "clean_before_build": true,
-    "auto_discover_libraries": true
-  },
-  "native_component": {
-    "name": "wifi-agent",
-    "build_system": "autotools",
-    "cflags": ["-DENABLE_WIFI_6", "-D_DEBUG"],
-    "system_includes": ["/usr/include/libnl3"],
-    "dependency_include_dirs": ["$HOME/usr/include/rdkb/wifi_hal"],
-    "ldflags": ["-Wl,--allow-shlib-undefined"],
-    "configure_options": ["--enable-shared"],
-    "source_header_patches": [],
-    "pre_build_commands": [],
-    "component_header_dirs": [],
-    "component_libraries": [],
-    "component_install_subdir": "wifi"
-  },
-  "header_dependencies": [
-    {
-      "name": "rdkb-halif-wifi",
-      "repository": "https://github.com/rdkcentral/rdkb-halif-wifi.git",
-      "branch": "main",
-      "header_paths": [
-        {
-          "source": "include",
-          "destination": "."
-        }
-      ]
-    }
-  ],
-  "library_dependencies": [
-    {
-      "name": "rbus",
-      "repository": "https://github.com/rdkcentral/rbus.git",
-      "branch": "main",
-      "build_system": "cmake",
-      "cmake_options": ["-DBUILD_TESTING=OFF"]
-    }
-  ]
-}
-```
-
-### Example 3: CMake Component with Code Generation
-
-```json
-{
-  "build_options": {
-    "skip_header_dependencies": false,
-    "skip_library_dependencies": false,
-    "clean_before_build": true,
-    "auto_discover_libraries": false
-  },
-  "native_component": {
-    "name": "my-cmake-app",
-    "build_system": "cmake",
-    "cflags": ["-DCUSTOM_BUILD", "-O3"],
-    "system_includes": [],
-    "dependency_include_dirs": [],
-    "ldflags": [],
-    "cmake_options": [
-      "-DCMAKE_BUILD_TYPE=Release",
-      "-DENABLE_TESTS=OFF"
-    ],
-    "source_header_patches": [],
-    "pre_build_commands": [
-      {
-        "description": "Generate protocol buffers",
-        "command": "protoc --cpp_out=src proto/*.proto"
       }
-    ],
-    "component_header_dirs": [
-      {
-        "source": "include",
-        "destination": "myapp"
-      }
-    ],
-    "component_libraries": ["build/lib/*.so"],
-    "component_install_subdir": "myapp"
-  },
-  "header_dependencies": [],
-  "library_dependencies": [
-    {
-      "name": "protobuf",
-      "repository": "https://github.com/protocolbuffers/protobuf.git",
-      "branch": "main",
-      "build_system": "cmake",
-      "source_subdir": "cmake",
-      "cmake_options": ["-Dprotobuf_BUILD_TESTS=OFF"]
-    }
-  ]
+    ]
+  }
 }
 ```
 
-### Example 4: Component with Patches
+**Note:** The `build` section is optional - omit it for header-only dependencies.
+
+#### Native Component
 
 ```json
 {
-  "build_options": {
-    "skip_header_dependencies": false,
-    "skip_library_dependencies": false,
-    "clean_before_build": true,
-    "auto_discover_libraries": true
-  },
   "native_component": {
-    "name": "patched-component",
-    "build_system": "autotools",
-    "cflags": ["-DSAFEC_DUMMY_API"],
-    "system_includes": ["/usr/include/dbus-1.0"],
-    "dependency_include_dirs": [],
-    "ldflags": [],
-    "configure_options": [],
-    "source_header_patches": [
+    "name": "component-name",
+    "include_path": "$HOME/usr/include/rdkb/",
+    "lib_output_path": "$HOME/usr/local/lib/",
+    "header_sources": [
+      { "source": "source/ccsp/include", "destination": "$HOME/usr/include/rdkb" },
+      { "source": "source/cosa/include", "destination": "$HOME/usr/include/rdkb" }
+    ],
+    "source_patches": [
       {
-        "source": "$HOME/usr/include/rdkb/ccsp_message_bus.h",
-        "patch_line": "typedef struct _CCSP_MESSAGE_BUS_CONNECTION",
-        "insert_before": "typedef struct DBusLoop DBusLoop;"
-      },
-      {
-        "source": "source/main.c",
+        "file": "$HOME/usr/include/rdkb/header.h",
         "type": "replace",
-        "sed_command": "s/OldFunc(arg1, arg2)$/NewFunc(arg1, arg2, NULL)/g"
+        "search": "old text",
+        "replace": "new text"
       }
     ],
-    "pre_build_commands": [
-      {
-        "description": "Generate datamodel",
-        "command": "python3 $HOME/usr/include/rdkb/codegen.py config.xml output.c"
-      }
-    ],
-    "component_header_dirs": [],
-    "component_libraries": [],
-    "component_install_subdir": ""
-  },
-  "header_dependencies": [
-    {
-      "name": "CcspCommonLibrary",
-      "repository": "https://github.com/rdkcentral/common-library.git",
-      "branch": "main",
-      "header_paths": [
-        {
-          "source": "source/ccsp/include",
-          "destination": "."
-        }
+    "build": {
+      "type": "autotools|cmake",
+      "configure_options": [
+        "CPPFLAGS=-I$HOME/usr/include/rdkb",
+        "LDFLAGS=-L$HOME/usr/lib"
       ]
     }
-  ],
-  "library_dependencies": []
-}
-```
-
----
-
-## Advanced Usage
-
-### Environment Variables
-
-```bash
-# Header installation path
-export HEADER_PREFIX=$HOME/custom/include
-
-# Library installation path
-export INSTALL_PREFIX=$HOME/custom/lib
-
-# Build directory
-export BUILD_DIR=/tmp/build
-
-# Parallel jobs
-export BUILD_JOBS=16
-
-./setup_dependencies.sh
-./build_native.sh
-```
-
-### Incremental Builds
-
-```json
-{
-  "build_options": {
-    "skip_header_dependencies": true,
-    "skip_library_dependencies": true,
-    "clean_before_build": false
   }
 }
 ```
 
-### Cross-Compilation
+**Configuration Details:**
+- `header_sources[]` - Component headers to copy before building. Source paths are relative to component directory.
+- `source_patches[]` - Patches to apply after headers are copied. Use absolute paths with `$HOME` for files in install directories.
+- `include_path` - Colon-separated include paths for building
+- `lib_output_path` - Where to install built libraries
 
-**CMake:**
+## Build Types
+
+### Autotools
 ```json
-{
-  "native_component": {
-    "build_system": "cmake",
-    "cmake_options": [
-      "-DCMAKE_SYSTEM_NAME=Linux",
-      "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc",
-      "-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
-    ]
-  }
+"build": {
+  "type": "autotools",
+  "configure_flags": "--prefix=$HOME/usr --enable-feature"
 }
 ```
 
-**Autotools:**
+### CMake
 ```json
-{
-  "native_component": {
-    "build_system": "autotools",
-    "configure_options": [
-      "--host=aarch64-linux-gnu",
-      "--build=x86_64-linux-gnu"
-    ]
-  }
+"build": {
+  "type": "cmake",
+  "build_dir": "build",
+  "cmake_flags": "-DCMAKE_INSTALL_PREFIX=$HOME/usr"
 }
 ```
 
-### Debug Mode
-
-```bash
-bash -x ./setup_dependencies.sh
-bash -x ./build_native.sh
+### Meson
+```json
+"build": {
+  "type": "meson",
+  "meson_flags": "--prefix=$HOME/usr"
+}
 ```
 
-### Reset Everything
-
-```bash
-rm -rf $HOME/usr $HOME/build
-./setup_dependencies.sh
-./build_native.sh
+### Custom Commands
+```json
+"build": {
+  "type": "commands",
+  "commands": ["meson setup build --prefix=$HOME/usr", "meson compile -C build"]
+}
 ```
 
----
+### Custom Script
+```json
+"build": {
+  "type": "script",
+  "script": "cov_docker_script/build.sh"
+}
+```
 
 ## Troubleshooting
 
-### Common Errors
-
-**"jq is not installed"**
+### Build fails with "command not found"
+**Install required tools:**
 ```bash
-sudo apt-get install jq
+sudo apt-get install git jq gcc make autoconf automake libtool cmake python3
 ```
 
-**"git is not installed"**
+### Dependencies fail to build
+- Check `$HOME/build/<repo-name>` for build logs
+- Verify `configure_flags` in JSON are correct
+- Ensure system packages for build type are installed (cmake, meson, etc.)
+
+### Headers not found during component build
+- Verify `setup_dependencies.sh` completed successfully
+- Check `$HOME/usr/include/rdkb/` contains expected headers
+- Verify `header_paths` in JSON point to correct source directories
+
+### Libraries not found
+- Check library directories:
+  - `$HOME/usr/local/lib/` - Primary location
+  - `$HOME/usr/lib/` - Secondary location
+- Verify dependencies built successfully (look for `.so`, `.a` files)
+- Check build logs for `make install` errors
+
+### Patches fail to apply
+- **File not found:** Verify file path is relative to component directory
+- **Use `../`** for files outside component (e.g., `../usr/include/rdkb/header.h`)
+- **Exact match required:** Search string must exactly match file content
+- **Python3 required:** Ensure Python3 is installed
+
+### Clean build needed
 ```bash
-sudo apt-get install git
+# Remove all previous build artifacts
+CLEAN_BUILD=true ./common_external_build.sh
 ```
 
-**"Missing required field in JSON"**
+### Validate configuration
 ```bash
-# Validate JSON syntax
-jq empty component_config.json
+# Check JSON syntax
+jq . component_config.json
 
-# Check required fields exist:
-# - build_options
-# - native_component
-# - native_component.name
-# - native_component.build_system
-# - header_dependencies
-# - library_dependencies
+# List all dependencies
+jq '.dependencies.repos[].name' component_config.json
 ```
 
-**"configure: command not found"**
+## Directory Structure After Build
+
+```
+$HOME/
+├── build/              # Cloned repositories (removed after build)
+└── usr/
+    ├── include/
+    │   └── rdkb/       # All dependency headers
+    ├── lib/            # Secondary library location
+    └── local/
+        └── lib/        # Primary library location (.so, .a files)
+```
+
+## Environment Variables
+
+These are automatically configured by the scripts:
+
+- `BUILD_DIR` - Repository clone location (default: `$HOME/build`)
+- `USR_DIR` - Install directory (default: `$HOME/usr`)
+- `PKG_CONFIG_PATH` - Configured for dependency detection
+- `LD_LIBRARY_PATH` - Configured for runtime linking
+- `CPPFLAGS` - Include paths for compilation
+- `LDFLAGS` - Library paths for linking
+- `CLEAN_BUILD` - Set to `true` to clean before build
+
+## Required System Tools
+
+- `bash` (version 4.0+)
+- `git` - Repository cloning
+- `jq` - JSON parsing
+- `gcc`/`g++` - C/C++ compiler
+- `make` - Build automation
+- `python3` - Patch application
+
+**Optional (based on dependency types):**
+- `autoconf`, `automake`, `libtool` - For autotools builds
+- `cmake` - For CMake builds
+- `meson`, `ninja` - For Meson builds
+- `pkg-config` - For dependency detection
+
+---
+
+## Adopting for Another Component
+
+**These scripts are 100% generic and component-agnostic.** To use them for a different component:
+
+### Step 1: Copy the Scripts
+
+```bash
+# Copy all scripts to your component's build directory
+cp common_build_utils.sh setup_dependencies.sh build_native.sh common_external_build.sh /path/to/new-component/cov_docker_script/
+
+# Make executable
+chmod +x /path/to/new-component/cov_docker_script/*.sh
+```
+
+### Step 2: Create component_config.json
+
+Create a new `component_config.json` for your component:
+
 ```json
 {
-  "pre_build_commands": [
-    {
-      "description": "Generate configure",
-      "command": "./autogen.sh"
-    }
-  ]
-}
-```
-
-**Library not found during build**
-1. Check dependencies built: `ls $HOME/usr/local/lib`
-2. Verify PKG_CONFIG_PATH (scripts handle automatically)
-3. Check library names for typos
-
-**Headers not found during build**
-1. Check headers installed: `ls $HOME/usr/include/rdkb`
-2. Add to `dependency_include_dirs`:
-```json
-{
+  "_comment": "Component Build Configuration",
+  "_version": "2.0",
+  
+  "dependencies": {
+    "repos": [
+      {
+        "name": "your-dependency",
+        "repo": "https://github.com/org/your-dependency.git",
+        "branch": "main",
+        "header_paths": [
+          { "source": "include", "destination": "$HOME/usr/include/rdkb" }
+        ],
+        "build": {
+          "type": "cmake",
+          "cmake_flags": "-DCMAKE_INSTALL_PREFIX=$HOME/usr"
+        }
+      }
+    ]
+  },
+  
   "native_component": {
-    "dependency_include_dirs": ["$HOME/usr/include/rdkb/missing_hal"]
+    "name": "your-component-name",
+    "include_path": "$HOME/usr/include/rdkb/",
+    "lib_output_path": "$HOME/usr/local/lib/",
+    "source_patches": [],
+    "build": {
+      "type": "autotools",
+      "configure_options": [
+        "CPPFLAGS=-I$HOME/usr/include/rdkb",
+        "LDFLAGS=-L$HOME/usr/local/lib"
+      ]
+    }
   }
 }
 ```
 
-**Permission denied**
+### Step 3: Run the Build
+
 ```bash
-chmod -R u+w $HOME/usr $HOME/build
-rm -rf $HOME/usr $HOME/build
+cd /path/to/new-component/cov_docker_script
+./common_external_build.sh
 ```
 
-### Validation Checklist
+**That's it!** No script modifications needed. The scripts automatically:
+- Read component name from JSON
+- Find component directory (parent of script directory)
+- Clone dependencies listed in JSON
+- Copy headers from paths specified in JSON
+- Build using build type specified in JSON
+- Apply patches listed in JSON
 
-- [ ] `component_config.json` exists
-- [ ] JSON syntax valid: `jq empty component_config.json`
-- [ ] `native_component.name` set
-- [ ] `native_component.build_system` correct
-- [ ] Dependencies listed
-- [ ] Scripts executable: `chmod +x *.sh`
+### What Makes These Scripts Generic?
+
+✅ **No hardcoded paths** - All paths from JSON or environment variables  
+✅ **No hardcoded component names** - Component name read from JSON  
+✅ **No hardcoded dependencies** - All dependencies defined in JSON  
+✅ **No hardcoded build commands** - Build type and options from JSON  
+✅ **Flexible build systems** - Supports autotools, cmake, meson, custom commands, custom scripts  
+✅ **Configurable patches** - All patches defined in JSON  
+
+### Example: Migrating from Utopia to CcspPandM
+
+```bash
+# 1. Copy scripts to CcspPandM
+cp utopia/cov_docker_script/*.sh ccsp-p-and-m/cov_docker_script/
+
+# 2. Create ccsp-p-and-m/cov_docker_script/component_config.json
+# Update: component name, dependencies, build settings
+
+# 3. Run build
+cd ccsp-p-and-m/cov_docker_script
+./common_external_build.sh
+```
+
+**Scripts remain unchanged - only JSON changes!**
 
 ---
-
-## Summary
-
-### Workflow
-
-1. Copy scripts to your component
-2. Edit `component_config.json`
-3. Run `./setup_dependencies.sh`
-4. Run `./build_native.sh`
-
-### Key Points
-
-- ✅ Scripts are **100% generic**
-- ✅ All config in **component_config.json**
-- ✅ Supports **autotools/cmake/meson**
-- ✅ **Validated** with clear errors
-- ✅ **Reusable** across components
-
-### Files
-
-```
-cov_docker_script/
-├── README.md                   ← This file
-├── setup_dependencies.sh       ← Install dependencies
-├── build_native.sh             ← Build component
-├── common_external_build.sh    ← Run both
-└── component_config.json       ← Your configuration
-```
-
-**That's it!** Copy, configure, build.

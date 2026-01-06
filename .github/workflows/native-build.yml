@@ -19,7 +19,6 @@ jobs:
 
       - name: native build
         run: |
-        run: |
           chmod +x cov_docker_script/setup_dependencies.sh
           ./cov_docker_script/setup_dependencies.sh
           chmod +x cov_docker_script/build_native.sh

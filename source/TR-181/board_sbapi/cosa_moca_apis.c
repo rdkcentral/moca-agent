@@ -598,7 +598,13 @@ CosaDmlMocaIfReset
 		CcspTraceWarning(("Provisioning state of MoCA before Reset. CosaDmlMocaIfReset -- ProvisioningFilename:%s, ProvisioningServerAddress:%s, ProvisioningServer ddressType:%s\n", MCfg->X_CISCO_COM_ProvisioningFilename, MCfg->X_CISCO_COM_ProvisioningServerAddress, (MCfg->X_CISCO_COM_ProvisioningServerAddressType==1)?"IPv4":"IPv6"));
 
 	        /* Get default value of MoCA Interface*/
-		moca_GetIfConfig(ulInterfaceIndex, &mocaCfg);
+	       /* Coverity CID 414230: STRING_NULL — ensure HAL string fields are terminated */
+                if (STATUS_SUCCESS != moca_GetIfConfig(ulInterfaceIndex, &mocaCfg)) {
+                    CcspTraceWarning(("moca_GetIfConfig failed\n"));
+                    return ANSC_STATUS_FAILURE;
+                }
+                mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
+                mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
 
 		/* MoCA Interface Setting to FALSE and syscfg commit it. That mean, we are disabled the MoCA interface here */
 		CcspTraceWarning(("%s > Disabling MoCA Interface...\n", __func__));
@@ -1052,7 +1058,10 @@ CosaDmlMocaIfGetCfg
            CcspTraceError(("-- moca_GetIfConfig failure\n"));
            return ANSC_STATUS_FAILURE;
         }
-		
+        /* Coverity CID 348463: STRING_NULL — ensure HAL string fields are terminated.
+         * NOTE: Do NOT treat UCHAR masks as strings (FreqCurrentMaskSetting/NodeTabooMask/ChannelScanMask).*/
+          mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
+          mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
 
         /* XF3-5279 - PCOSA_DML_MOCA_IF_CFG instancenumber starts from 1.
          * but moca_cfg_t instance number starts from 0.

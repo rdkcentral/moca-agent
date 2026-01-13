@@ -220,6 +220,14 @@
           "type": "script",
           "script": "cov_docker_script/common_external_build.sh"
         }
+      },
+      {
+        "name": "breakpad_wrapper",
+        "repo": "https://github.com/rdkcentral/breakpad_wrapper.git",
+        "branch": "main",
+        "header_paths": [
+          { "source": ".", "destination": "$HOME/usr/include/rdkb" }
+        ]
       }
     ]
   },
@@ -229,14 +237,6 @@
     "name": "moca-agent",
     "include_path": "$HOME/usr/include/rdkb/",
     "lib_output_path": "$HOME/usr/local/lib/",
-    "source_patches": [
-      {
-        "file": "source/TR-181/board_sbapi/cosa_moca_apis.c",
-        "type": "replace",
-        "search": "BOOL MoCA_SetForceEnable(PCOSA_DML_MOCA_IF_CFG pCfg, PCOSA_DML_MOCA_CFG  pFCfg)",
-        "replace": "BOOL MoCA_SetForceEnable(PCOSA_DML_MOCA_IF_CFG pCfg, PCOSA_DML_MOCA_CFG  pFCfg, BOOL bValue)"
-      }
-    ],
     "pre_build_commands": [
       {
         "description": "Generate dm_pack_datamodel.c from XML",
@@ -245,10 +245,7 @@
     ],
     "build": {
       "type": "autotools",
-      "configure_options": [
-        "CPPFLAGS=-I$HOME/usr/include/rdkb/ -I/usr/include/dbus-1.0 -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include -DSAFEC_DUMMY_API -D_ANSC_USE_OPENSSL_ -D_NO_PKI_KB5_SUPPORT -D_DEBUG",
-        "LDFLAGS=-L$HOME/usr/local/lib/ -Wl,--allow-shlib-undefined -Wl,--unresolved-symbols=ignore-all"
-      ]
+      "configure_options_file": "cov_docker_script/configure_options.conf"
     }
   }
 }

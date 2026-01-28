@@ -17,7 +17,7 @@ This directory contains the configuration and wrapper scripts necessary for buil
 ├── configure_options.conf         # Autotools configure flags (optional)
 ├── run_setup_dependencies.sh      # Wrapper: Setup build tools & dependencies
 ├── run_native_build.sh           # Wrapper: Setup build tools & build component
-└── run_external_build.sh         # Wrapper: Run external build (legacy/direct)
+└── run_external_build.sh         # Wrapper: Run external build (legacy/direct) (Only for JSON use case)
 ```
 
 ### Important: Add to .gitignore
@@ -58,7 +58,6 @@ CLEAN_BUILD=true ./cov_docker_script/run_setup_dependencies.sh
 ./cov_docker_script/run_native_build.sh
 
 # Alternative: Run external build (legacy/direct method)
-./cov_docker_script/run_setup_dependencies.sh
 ./cov_docker_script/run_external_build.sh
 ```
 

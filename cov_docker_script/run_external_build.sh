@@ -10,6 +10,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NATIVE_COMPONENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+BUILD_TOOLS_REPO_URL="https://github.com/rdkcentral/build_tools_workflows"
 BUILD_TOOLS_DIR="$NATIVE_COMPONENT_DIR/build_tools_workflows"
 
 # Basic logging functions
@@ -21,10 +22,14 @@ echo ""
 echo "===== External Build Pipeline ====="
 echo ""
 
-# Verify build_tools_workflows exists (should be cloned by run_setup_dependencies.sh)
+# Clone build_tools_workflows if it doesn't exist
 if [[ ! -d "$BUILD_TOOLS_DIR" ]]; then
-    err "build_tools_workflows directory not found. Please run run_setup_dependencies.sh first."
-    exit 1
+    log "build_tools_workflows not found, cloning repository..."
+    cd "$NATIVE_COMPONENT_DIR"
+    git clone -b develop "$BUILD_TOOLS_REPO_URL" || { err "Clone failed"; exit 1; }
+    ok "Repository cloned successfully"
+else
+    log "build_tools_workflows already exists"
 fi
 
 if [[ ! -f "$BUILD_TOOLS_DIR/cov_docker_script/common_external_build.sh" ]]; then

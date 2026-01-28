@@ -16,8 +16,8 @@ This directory contains the configuration and wrapper scripts necessary for buil
 ├── component_config.json          # Dependency & build configuration
 ├── configure_options.conf         # Autotools configure flags (optional)
 ├── run_setup_dependencies.sh      # Wrapper: Setup build tools & dependencies
-├── run_native_build.sh           # Wrapper: Setup build tools & build component
-└── run_external_build.sh         # Wrapper: Run external build (legacy/direct) (Only for JSON use case)
+├── run_native_build.sh           # Wrapper: Build main component
+└── run_external_build.sh         # Wrapper: For dependency builds (used in component_config.json)
 ```
 
 ### Important: Add to .gitignore
@@ -49,17 +49,28 @@ build/
 # From your component root directory
 cd /path/to/your-component
 
-# Run complete build pipeline
+# Standard build pipeline for main component
 ./cov_docker_script/run_setup_dependencies.sh
 ./cov_docker_script/run_native_build.sh
 
 # Clean build (removes previous artifacts)
 CLEAN_BUILD=true ./cov_docker_script/run_setup_dependencies.sh
 ./cov_docker_script/run_native_build.sh
-
-# Alternative: Run external build (legacy/direct method)
-./cov_docker_script/run_external_build.sh
 ```
+
+#### Alternative: Single-Script Build (All-in-One)
+
+If you prefer to run everything in a single command:
+
+```bash
+# Run setup dependencies + native build in one script
+./cov_docker_script/run_external_build.sh
+
+# Clean build
+CLEAN_BUILD=true ./cov_docker_script/run_external_build.sh
+```
+
+**Note:** `run_external_build.sh` performs both dependency setup and component build in one execution. While primarily designed to be invoked by the dependency setup process when specified in `component_config.json` (see [run_external_build.sh](#3-run_external_buildsh) section), it can also be used directly for the main component as a convenience script that handles the complete build pipeline.
 
 #### Individual Steps
 
@@ -147,13 +158,19 @@ CLEAN_BUILD=true ./run_setup_dependencies.sh
 
 ### 3. run_external_build.sh
 
-**Purpose:** Runs external build process using common_external_build.sh.
+**Purpose:** Builds dependencies with complex build requirements (invoked from component_config.json).
+
+**Key Differences from run_native_build.sh:**
+- Designed for **dependency repositories**, not the main component
+- Invokes `common_external_build.sh` without arguments (dependencies manage their own configuration)
+- Does **NOT** clean up `build_tools_workflows` (may be used by multiple dependencies)
+- Typically called automatically during dependency setup, not manually
 
 **What it does:**
-1. Verifies `build_tools_workflows` directory exists (cloned by `run_setup_dependencies.sh`)
+1. Clones `build_tools_workflows` if not present (or verifies it exists)
 2. Verifies `common_external_build.sh` is present
-3. Runs `common_external_build.sh` from build_tools_workflows with no arguments
-4. Does NOT clean up build_tools_workflows directory (preserved for subsequent use)
+3. Runs `common_external_build.sh` from build_tools_workflows
+4. Preserves `build_tools_workflows` directory for subsequent use
 
 **Usage:**
 ```bash

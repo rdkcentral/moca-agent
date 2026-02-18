@@ -45,14 +45,17 @@
 #include "webconfig_framework.h"
 #include "secure_wrapper.h"
 #include <sys/stat.h>
-/* ===== Added for flood-on-touch support (thread + time) ===== */
+
+/* ==== Additive includes for flood-on-touch support (no behavior changes) ==== */
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #include <stdint.h>
 #include <errno.h>
 #include <string.h>
-//  Existing moca_initialized is removed from ccsp_restart.sh . Created this file to determine if component is coming after crashed to sync values from server.
+#include <fcntl.h>
+
 #define MOCA_INIT_FILE_BOOTUP "/tmp/moca_initialized_bootup"
 
 #ifdef INCLUDE_BREAKPAD
@@ -68,45 +71,131 @@ char                                        g_Subsystem[32]         = {0};
 int consoleDebugEnable = 0;
 FILE* debugLogFile;
 
-/* ===== Flood-on-touch: configuration ===== */
-#define MOCA_FLOOD_TRIGGER_FILE "/tmp/moca_flood"
-static volatile sig_atomic_t g_keep_running = 1;   /* stop hint on signals */
-static const char* g_flood_messages[] = {
-    "This system is intentionally flooded for suppressor POC",
-    "Random error message for testing purposes",
-    "Simulation of unexpected system behavior",
-    "Test log message with random content",
-    "Debugging information for suppressor POC",
-    "Random warning message for log flooding"
-};
-static const size_t g_flood_num_messages =
-    sizeof(g_flood_messages) / sizeof(g_flood_messages[0]);
 
-/* Background thread: flood logs when trigger file exists */
+/* =============================================================================
+   Flood-on-touch: Emit patterned logs when /tmp/moca_flood exists.
+   Pattern:
+     - N1 consecutive one-line messages
+     - N2 consecutive two-line pairs (A + B)
+     - N3 consecutive three-line blocks (A + B + A)
+   Repeat while trigger file exists. Idle (light polling) when absent.
+   ========================================================================== */
+
+#define MOCA_FLOOD_TRIGGER_FILE "/tmp/moca_flood"
+static volatile sig_atomic_t g_keep_running = 1; /* set to 0 on signals for graceful stop */
+
+/* Timestamp format: YYMMDD-HH:MM:SS.UUUUUU (microseconds, 6 digits) */
+static void format_timestamp(char* buf, size_t len)
+{
+    struct timeval tv;
+    struct tm tmv;
+    gettimeofday(&tv, NULL);
+    localtime_r(&tv.tv_sec, &tmv);
+
+    int yy = (tmv.tm_year + 1900) % 100;     /* 2-digit year */
+    long usec = tv.tv_usec;                   /* 0..999999 */
+
+    snprintf(buf, len,
+             "%02d%02d%02d-%02d:%02d:%02d.%06ld",
+             yy,
+             tmv.tm_mon + 1,
+             tmv.tm_mday,
+             tmv.tm_hour,
+             tmv.tm_min,
+             tmv.tm_sec,
+             usec);
+}
+
+/* One-line sample (content can be generic; matches structure only) */
+static void emit_psm_get_line(void)
+{
+    char ts[32];
+    format_timestamp(ts, sizeof(ts));
+    CcspTraceInfo(("%s Log flooded for testing purpose\n", ts));
+}
+
+/* Companion line (2-line pairs and 3-line blocks) */
+static void emit_rbus_call_line(void)
+{
+    char ts[32];
+    format_timestamp(ts, sizeof(ts));
+    CcspTraceInfo(("%s Moca log flooded for testing suppression logic\n", ts));
+}
+
+/* Background thread that floods only while the trigger file exists */
 static void* flood_on_touch_thread(void* arg)
 {
     (void)arg;
-    unsigned int seed = (unsigned int)(
-        (unsigned)time(NULL) ^
-        (unsigned)getpid() ^
-        (unsigned)(uintptr_t)pthread_self()
-    );
 
-    /* Poll for trigger file and flood while it exists */
-    while (g_keep_running) {
-        if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) == 0) {
-            /* Trigger present: flood ~40 logs/sec (25ms) */
-            int idx = (int)(rand_r(&seed) % g_flood_num_messages);
-            CcspTraceInfo(("%s\n", g_flood_messages[idx]));
-            usleep(25000);
-        } else {
-            /* No trigger: back off to reduce CPU */
-            usleep(200000); /* 200ms */
+    /* Tunables: adjust to change burst sizes and pacing */
+    const useconds_t SLEEP_SINGLE_US  = 25000;  /* 25 ms between single lines */
+    const useconds_t SLEEP_BLOCK_US   = 25000;  /* 25 ms between lines in pairs/blocks */
+    const useconds_t IDLE_BACKOFF_US  = 200000; /* 200 ms idle poll when trigger absent */
+
+    const int RUN_SINGLE_LINES    = 10; /* N1: number of consecutive one-liners */
+    const int RUN_TWO_LINE_PAIRS  = 8;  /* N2: number of pairs (A+B) */
+    const int RUN_THREE_LINE_BLKS = 4;  /* N3: number of triples (A+B+A) */
+
+    enum phase_e { PHASE_SINGLE = 0, PHASE_TWO_LINE = 1, PHASE_THREE_LINE = 2 };
+    enum phase_e phase = PHASE_SINGLE;
+
+    while (g_keep_running)
+    {
+        /* Check trigger: flood only if the file exists */
+        if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) {
+            usleep(IDLE_BACKOFF_US);
+            continue;
+        }
+
+        switch (phase)
+        {
+            case PHASE_SINGLE:
+                for (int i = 0; i < RUN_SINGLE_LINES && g_keep_running; ++i) {
+                    emit_psm_get_line();
+                    usleep(SLEEP_SINGLE_US);
+                    if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) break;
+                }
+                phase = PHASE_TWO_LINE;
+                break;
+
+            case PHASE_TWO_LINE:
+                for (int i = 0; i < RUN_TWO_LINE_PAIRS && g_keep_running; ++i) {
+                    emit_rbus_call_line();
+                    usleep(SLEEP_BLOCK_US);
+                    if (!g_keep_running) break;
+                    if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) break;
+
+                    emit_psm_get_line();
+                    usleep(SLEEP_BLOCK_US);
+                    if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) break;
+                }
+                phase = PHASE_THREE_LINE;
+                break;
+
+            case PHASE_THREE_LINE:
+                for (int i = 0; i < RUN_THREE_LINE_BLKS && g_keep_running; ++i) {
+                    emit_rbus_call_line();
+                    usleep(SLEEP_BLOCK_US);
+                    if (!g_keep_running) break;
+                    if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) break;
+
+                    emit_psm_get_line();
+                    usleep(SLEEP_BLOCK_US);
+                    if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) break;
+
+                    emit_rbus_call_line();
+                    usleep(SLEEP_BLOCK_US);
+                    if (access(MOCA_FLOOD_TRIGGER_FILE, F_OK) != 0) break;
+                }
+                phase = PHASE_SINGLE;
+                break;
         }
     }
     return NULL;
 }
 
+
+/* ========================== Existing app logic (unchanged) ================== */
 
 int  cmd_dispatch(int  command)
 {
@@ -214,7 +303,6 @@ static void daemonize(void) {
 
 
 #ifndef  _DEBUG
-
     int fd = open("/dev/null", O_RDONLY);
     if (fd != 0) {
         dup2(fd, 0);
@@ -238,8 +326,8 @@ void sig_handler(int sig)
     if ( sig == SIGINT ) {
         signal(SIGINT, sig_handler); /* reset it to this function */
         CcspTraceInfo(("SIGINT received!\n"));
-        g_keep_running = 0;
-    exit(0);
+        g_keep_running = 0; /* allow flood thread to exit */
+        exit(0);
     }
     else if ( sig == SIGUSR1 ) {
         signal(SIGUSR1, sig_handler); /* reset it to this function */
@@ -260,7 +348,7 @@ void sig_handler(int sig)
         /* get stack trace first */
         _print_stack_backtrace();
         CcspTraceInfo(("Signal %d received, exiting!\n", sig));
-        g_keep_running = 0;
+        g_keep_running = 0; /* allow flood thread to exit */
         exit(0);
     }
 
@@ -379,7 +467,7 @@ int main(int argc, char* argv[])
 
     signal(SIGSEGV, sig_handler);
     signal(SIGBUS, sig_handler);
-    signal(SIGKILL, sig_handler);
+    signal(SIGKILL, sig_handler); /* NOTE: SIGKILL cannot be caught; left as-is to avoid changing existing logic */
     signal(SIGFPE, sig_handler);
     signal(SIGILL, sig_handler);
     signal(SIGQUIT, sig_handler);
@@ -412,7 +500,7 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    /* ===== Start the flood-on-touch watcher thread (detached) ===== */
+    /* ==== Start the flood-on-touch watcher thread (detached, no behavior change otherwise) ==== */
     {
         pthread_t th;
         pthread_attr_t attr;

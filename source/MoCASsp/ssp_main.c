@@ -146,6 +146,7 @@ static void _print_stack_backtrace(void)
 }
 
 static void daemonize(void) {
+	int fd;
 	switch (fork()) {
 	case 0:
 		break;
@@ -216,6 +217,119 @@ void sig_handler(int sig)
     	exit(0);
     }
 
+}
+
+/******************************************************************************
+ * LOG FLOOD TEST FUNCTION - Automatically generates massive log output
+ * to test log suppression scripts
+ ******************************************************************************/
+void test_log_suppression_flood(void)
+{
+    int i, j;
+    
+    CcspTraceInfo(("========== LOG FLOOD TEST START ==========\n"));
+    
+    // Test 1: MASSIVE single-line consecutive repeats (100 times)
+    CcspTraceInfo(("TEST 1: Heavy single-line flood (100 repeats)\n"));
+    for (i = 0; i < 100; i++) {
+        CcspTraceInfo(("ERROR: Connection timeout to MoCA coordinator\n"));
+    }
+    
+    // Test 2: Multi-line pattern FLOOD (3-line pattern repeated 50 times)
+    CcspTraceInfo(("TEST 2: Multi-line pattern flood (50 copies)\n"));
+    for (i = 0; i < 50; i++) {
+        CcspTraceInfo(("MoCA: Starting link initialization\n"));
+        CcspTraceInfo(("MoCA: Scanning for network\n"));
+        CcspTraceInfo(("MoCA: Network discovery complete\n"));
+    }
+    
+    // Test 3: Multiple error types flooding simultaneously
+    CcspTraceInfo(("TEST 3: Multiple error floods\n"));
+    for (i = 0; i < 30; i++) {
+        CcspTraceInfo(("ERROR: Buffer overflow in rx queue\n"));
+    }
+    for (i = 0; i < 25; i++) {
+        CcspTraceInfo(("WARNING: High CPU usage detected\n"));
+    }
+    for (i = 0; i < 40; i++) {
+        CcspTraceInfo(("ERROR: Memory allocation failed\n"));
+    }
+    
+    // Test 4: Nested pattern flood (5-line pattern repeated 30 times)
+    CcspTraceInfo(("TEST 4: Large multi-line pattern flood (30 copies)\n"));
+    for (i = 0; i < 30; i++) {
+        CcspTraceInfo(("STEP 1: Initializing MoCA interface\n"));
+        CcspTraceInfo(("STEP 2: Checking hardware status\n"));
+        CcspTraceInfo(("STEP 3: Loading firmware\n"));
+        CcspTraceInfo(("STEP 4: Calibrating transceiver\n"));
+        CcspTraceInfo(("STEP 5: Interface ready\n"));
+    }
+    
+    // Test 5: Alternating pattern flood
+    CcspTraceInfo(("TEST 5: Alternating 2-line patterns (20 cycles)\n"));
+    for (i = 0; i < 20; i++) {
+        CcspTraceInfo(("TX: Packet sent, seq=%d\n", i));
+        CcspTraceInfo(("RX: ACK received, seq=%d\n", i));
+    }
+    
+    // Test 6: Continuous error burst (200 identical lines)
+    CcspTraceInfo(("TEST 6: Extreme single-line flood (200 repeats)\n"));
+    for (i = 0; i < 200; i++) {
+        CcspTraceInfo(("CRITICAL: Database connection lost\n"));
+    }
+    
+    // Test 7: Mixed flood - pattern then massive singles
+    CcspTraceInfo(("TEST 7: Pattern flood followed by single flood\n"));
+    for (i = 0; i < 15; i++) {
+        CcspTraceInfo(("START: Processing request\n"));
+        CcspTraceInfo(("END: Request completed\n"));
+    }
+    for (i = 0; i < 80; i++) {
+        CcspTraceInfo(("INFO: Heartbeat\n"));
+    }
+    
+    // Test 8: Multiple patterns flooding in sequence
+    CcspTraceInfo(("TEST 8: Sequential pattern floods\n"));
+    for (i = 0; i < 25; i++) {
+        CcspTraceInfo(("Pattern A: Line 1\n"));
+        CcspTraceInfo(("Pattern A: Line 2\n"));
+    }
+    for (i = 0; i < 30; i++) {
+        CcspTraceInfo(("Pattern B: Start\n"));
+        CcspTraceInfo(("Pattern B: Middle\n"));
+        CcspTraceInfo(("Pattern B: End\n"));
+    }
+    
+    // Test 9: Rapid fire with varying messages
+    CcspTraceInfo(("TEST 9: Rapid fire flood (500 lines)\n"));
+    for (i = 0; i < 500; i++) {
+        CcspTraceInfo(("FLOOD: Message %d\n", i % 10));
+    }
+    
+    // Test 10: Complex nested pattern
+    CcspTraceInfo(("TEST 10: Complex pattern flood (10 outer × 10 inner)\n"));
+    for (i = 0; i < 10; i++) {
+        for (j = 0; j < 10; j++) {
+            CcspTraceInfo(("OUTER: Iteration %d\n", i));
+            CcspTraceInfo(("INNER: Sub-iteration %d\n", j));
+            CcspTraceInfo(("STATUS: Processing\n"));
+        }
+    }
+    
+    // Test 11: The ultimate flood - 1000 identical lines
+    CcspTraceInfo(("TEST 11: ULTIMATE FLOOD (1000 identical lines)\n"));
+    for (i = 0; i < 1000; i++) {
+        CcspTraceInfo(("SPAM: This message repeats 1000 times\n"));
+    }
+    
+    // Test 12: Pattern with varying data but same structure
+    CcspTraceInfo(("TEST 12: Pattern with variable data (40 copies)\n"));
+    for (i = 0; i < 40; i++) {
+        CcspTraceInfo(("Reading sensor: value=%d\n", i % 5));
+        CcspTraceInfo(("Status: OK\n"));
+    }
+    
+    CcspTraceInfo(("========== LOG FLOOD TEST END (Generated ~2500+ log lines) ==========\n"));
 }
 
 
@@ -367,13 +481,70 @@ int main(int argc, char* argv[])
     //LM_main();
     if ( bRunAsDaemon )
     {
-        while(1)
+        /**************************************************************************
+         * AUTOMATIC LOG FLOOD TEST - Controlled by environment variable
+         * 
+         * Set MOCA_FLOOD_TEST=1 to enable automatic log flooding
+         * Set MOCA_FLOOD_INTERVAL=<seconds> to control flood interval (default: 120)
+         * 
+         * Examples:
+         *   MOCA_FLOOD_TEST=1 ./CcspMoCA                      # Flood every 2 minutes
+         *   MOCA_FLOOD_TEST=1 MOCA_FLOOD_INTERVAL=30 ./CcspMoCA  # Flood every 30 seconds
+         **************************************************************************/
+        
+        char *flood_test_env = getenv("MOCA_FLOOD_TEST");
+        char *flood_interval_env = getenv("MOCA_FLOOD_INTERVAL");
+        int flood_enabled = (flood_test_env != NULL && strcmp(flood_test_env, "1") == 0);
+        int flood_interval = flood_interval_env ? atoi(flood_interval_env) : 120; // Default 2 minutes
+        
+        if (flood_interval < 10) {
+            flood_interval = 10; // Minimum 10 seconds to prevent excessive flooding
+        }
+        
+        if (flood_enabled)
         {
-            sleep(30);
+            CcspTraceInfo(("======================================\n"));
+            CcspTraceInfo(("LOG FLOOD TEST MODE ENABLED\n"));
+            CcspTraceInfo(("Flood interval: %d seconds\n", flood_interval));
+            CcspTraceInfo(("======================================\n"));
+            
+            // Initial flood after 5 second startup delay
+            CcspTraceInfo(("Starting initial flood test in 5 seconds...\n"));
+            sleep(5);
+            test_log_suppression_flood();
+            CcspTraceInfo(("Initial flood test completed.\n"));
+            
+            // Continuous flooding loop
+            int elapsed = 0;
+            while(1)
+            {
+                sleep(30);
+                elapsed += 30;
+                
+                if (elapsed >= flood_interval)
+                {
+                    CcspTraceInfo(("Starting periodic flood test cycle...\n"));
+                    test_log_suppression_flood();
+                    CcspTraceInfo(("Periodic flood test completed.\n"));
+                    elapsed = 0;
+                }
+            }
+        }
+        else
+        {
+            // Normal daemon operation (no flood test)
+            CcspTraceInfo(("MoCA daemon started in normal mode.\n"));
+            CcspTraceInfo(("To enable log flood test, set MOCA_FLOOD_TEST=1\n"));
+            
+            while(1)
+            {
+                sleep(30);
+            }
         }
     }
     else
     {
+        // Interactive mode (foreground with -c flag)
         while ( cmdChar != 'q' )
         {
             cmdChar = getchar();
@@ -398,4 +569,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-

@@ -47,13 +47,14 @@
 #include <sys/stat.h>
 
 /* ==== Additive includes for flood-on-touch support (no behavior changes) ==== */
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
-#include <stdint.h>
-#include <errno.h>
-#include <string.h>
 #include <fcntl.h>
 
 #define MOCA_INIT_FILE_BOOTUP "/tmp/moca_initialized_bootup"
@@ -84,42 +85,55 @@ FILE* debugLogFile;
 #define MOCA_FLOOD_TRIGGER_FILE "/tmp/moca_flood"
 static volatile sig_atomic_t g_keep_running = 1; /* set to 0 on signals for graceful stop */
 
-/* Timestamp format: YYMMDD-HH:MM:SS.UUUUUU (microseconds, 6 digits) */
+/* Timestamp format: YYMMDD-HH:MM:SS.UUUUUU (microseconds, 6 digits)
+   Implemented to avoid -Werror=format-truncation by:
+   - using a sufficiently large buffer in callers (64 bytes),
+   - using %06d for microseconds (bounded int),
+   - checking len before snprintf. */
 static void format_timestamp(char* buf, size_t len)
 {
     struct timeval tv;
     struct tm tmv;
+
     gettimeofday(&tv, NULL);
     localtime_r(&tv.tv_sec, &tmv);
 
-    int yy = (tmv.tm_year + 1900) % 100;     /* 2-digit year */
-    long usec = tv.tv_usec;                   /* 0..999999 */
+    if (len < 32) {              /* 23 chars needed + NUL; use 32+ for headroom */
+        if (len > 0) buf[0] = '\0';
+        return;
+    }
 
-    snprintf(buf, len,
-             "%02d%02d%02d-%02d:%02d:%02d.%06ld",
-             yy,
-             tmv.tm_mon + 1,
-             tmv.tm_mday,
-             tmv.tm_hour,
-             tmv.tm_min,
-             tmv.tm_sec,
-             usec);
+    int yy   = (tmv.tm_year + 1900) % 100;  /* 2-digit year */
+    int usec = (int)tv.tv_usec;             /* 0..999999 */
+
+    int n = snprintf(buf, len,
+                     "%02d%02d%02d-%02d:%02d:%02d.%06d",
+                     yy,
+                     tmv.tm_mon + 1,
+                     tmv.tm_mday,
+                     tmv.tm_hour,
+                     tmv.tm_min,
+                     tmv.tm_sec,
+                     usec);
+    if (n < 0 || (size_t)n >= len) {
+        buf[len - 1] = '\0';
+    }
 }
 
 /* One-line sample (content can be generic; matches structure only) */
 static void emit_psm_get_line(void)
 {
-    char ts[32];
+    char ts[64];  /* ample size to silence truncation warnings */
     format_timestamp(ts, sizeof(ts));
-    CcspTraceInfo(("%s Log flooded for testing purpose\n", ts));
+    CcspTraceInfo(("%s [mod=PSM, lvl=INFO] [tid=4572] psmGet called: psmGet GetPSMRecordValue()\n", ts));
 }
 
 /* Companion line (2-line pairs and 3-line blocks) */
 static void emit_rbus_call_line(void)
 {
-    char ts[32];
+    char ts[64];  /* ample size to silence truncation warnings */
     format_timestamp(ts, sizeof(ts));
-    CcspTraceInfo(("%s Moca log flooded for testing suppression logic\n", ts));
+    CcspTraceInfo(("%s [mod=PSM, lvl=INFO] [tid=4572] rbus.c:2307 calling methodHandler method [GetPSMRecordValue()]\n", ts));
 }
 
 /* Background thread that floods only while the trigger file exists */
@@ -128,7 +142,7 @@ static void* flood_on_touch_thread(void* arg)
     (void)arg;
 
     /* Tunables: adjust to change burst sizes and pacing */
-    const useconds_t SLEEP_SINGLE_US  = 25000;  /* 25 ms between single lines */
+    const useconds_t SLEEP_SINGLE_US  = 25000;  /* 25 ms between single lines (~40/s) */
     const useconds_t SLEEP_BLOCK_US   = 25000;  /* 25 ms between lines in pairs/blocks */
     const useconds_t IDLE_BACKOFF_US  = 200000; /* 200 ms idle poll when trigger absent */
 

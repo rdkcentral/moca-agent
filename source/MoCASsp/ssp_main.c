@@ -146,7 +146,6 @@ static void _print_stack_backtrace(void)
 }
 
 static void daemonize(void) {
-	int fd;
 	switch (fork()) {
 	case 0:
 		break;
@@ -169,7 +168,7 @@ static void daemonize(void) {
 
 
 #ifndef  _DEBUG
-
+    int fd;
 	fd = open("/dev/null", O_RDONLY);
 	if (fd != 0) {
 		dup2(fd, 0);

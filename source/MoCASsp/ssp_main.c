@@ -123,17 +123,12 @@ static void format_timestamp(char* buf, size_t len)
 /* One-line sample (content can be generic; matches structure only) */
 static void emit_psm_get_line(void)
 {
-    char ts[64];  /* ample size to silence truncation warnings */
-    format_timestamp(ts, sizeof(ts));
-    CcspTraceInfo(("%s Purposely flooded moca logs for testing\n", ts));
+    CcspTraceInfo(("MOCA flood: single-line test message\n"));
 }
 
-/* Companion line (2-line pairs and 3-line blocks) */
 static void emit_rbus_call_line(void)
 {
-    char ts[64];  /* ample size to silence truncation warnings */
-    format_timestamp(ts, sizeof(ts));
-    CcspTraceInfo(("%s For testing purpose logs flooded purposely on MOCA logs*****\n", ts));
+    CcspTraceInfo(("MOCA flood: block companion message\n"));
 }
 
 /* Background thread that floods only while the trigger file exists */

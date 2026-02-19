@@ -54,7 +54,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
-#include <sys/time.h>
 #include <fcntl.h>
 
 #define MOCA_INIT_FILE_BOOTUP "/tmp/moca_initialized_bootup"
@@ -85,47 +84,13 @@ FILE* debugLogFile;
 #define MOCA_FLOOD_TRIGGER_FILE "/tmp/moca_flood"
 static volatile sig_atomic_t g_keep_running = 1; /* set to 0 on signals for graceful stop */
 
-/* Timestamp format: YYMMDD-HH:MM:SS.UUUUUU (microseconds, 6 digits)
-   Implemented to avoid -Werror=format-truncation by:
-   - using a sufficiently large buffer in callers (64 bytes),
-   - using %06d for microseconds (bounded int),
-   - checking len before snprintf. */
-static void format_timestamp(char* buf, size_t len)
-{
-    struct timeval tv;
-    struct tm tmv;
-
-    gettimeofday(&tv, NULL);
-    localtime_r(&tv.tv_sec, &tmv);
-
-    if (len < 32) {              /* 23 chars needed + NUL; use 32+ for headroom */
-        if (len > 0) buf[0] = '\0';
-        return;
-    }
-
-    int yy   = (tmv.tm_year + 1900) % 100;  /* 2-digit year */
-    int usec = (int)tv.tv_usec;             /* 0..999999 */
-
-    int n = snprintf(buf, len,
-                     "%02d%02d%02d-%02d:%02d:%02d.%06d",
-                     yy,
-                     tmv.tm_mon + 1,
-                     tmv.tm_mday,
-                     tmv.tm_hour,
-                     tmv.tm_min,
-                     tmv.tm_sec,
-                     usec);
-    if (n < 0 || (size_t)n >= len) {
-        buf[len - 1] = '\0';
-    }
-}
-
-/* One-line sample (content can be generic; matches structure only) */
+/* One-line sample message (no explicit timestamp; logger adds it) */
 static void emit_psm_get_line(void)
 {
     CcspTraceInfo(("MOCA flood: single-line test message\n"));
 }
 
+/* Companion message for 2-line and 3-line blocks (no explicit timestamp) */
 static void emit_rbus_call_line(void)
 {
     CcspTraceInfo(("MOCA flood: block companion message\n"));

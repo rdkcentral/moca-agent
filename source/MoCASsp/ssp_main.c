@@ -125,7 +125,7 @@ static void emit_psm_get_line(void)
 {
     char ts[64];  /* ample size to silence truncation warnings */
     format_timestamp(ts, sizeof(ts));
-    CcspTraceInfo(("%s [mod=PSM, lvl=INFO] [tid=4572] psmGet called: psmGet GetPSMRecordValue()\n", ts));
+    CcspTraceInfo(("%s Purposely flooded moca logs for testing\n", ts));
 }
 
 /* Companion line (2-line pairs and 3-line blocks) */
@@ -133,7 +133,7 @@ static void emit_rbus_call_line(void)
 {
     char ts[64];  /* ample size to silence truncation warnings */
     format_timestamp(ts, sizeof(ts));
-    CcspTraceInfo(("%s [mod=PSM, lvl=INFO] [tid=4572] rbus.c:2307 calling methodHandler method [GetPSMRecordValue()]\n", ts));
+    CcspTraceInfo(("%s For testing purpose logs flooded purposely on MOCA logs*****\n", ts));
 }
 
 /* Background thread that floods only while the trigger file exists */

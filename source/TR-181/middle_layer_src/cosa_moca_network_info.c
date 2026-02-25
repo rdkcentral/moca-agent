@@ -584,7 +584,7 @@ void Set_MoCADevices_Status_Offline()
         MoCADeviceInfo* cur = mocaList->deviceList;
         while(cur != NULL)
         {
-            CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Status %d \n", __FUNCTION__ , cur->Status));
+            CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Status %d \n" , cur->Status));
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Updated %d \n", __FUNCTION__ , cur->Updated));
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->StatusChange  %d \n", __FUNCTION__ , cur->StatusChange ));
             

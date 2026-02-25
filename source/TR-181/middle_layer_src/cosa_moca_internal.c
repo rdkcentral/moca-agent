@@ -488,7 +488,7 @@ static void MocaTelemetryPush()
 	rc = memset_s(tmp, sizeof(tmp), 0, sizeof(tmp));
 	ERR_CHK(rc);
 	get_formatted_time(tmp);
-	snprintf(buff, 2256, "%s MOCA_MAC_%lu:%s\n", tmp, ulIndex+1 , mac_buff1);
+	snprintf(buff, 2256, "%s MOCA_MAC_%lu:%s%s\n", tmp, ulIndex+1 , mac_buff1);
 	write_to_file(moca_telemetry_log, buff);
 	if (pMoCAAssocDevice)
 	{

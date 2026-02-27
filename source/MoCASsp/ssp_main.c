@@ -133,6 +133,10 @@ static void _print_stack_backtrace(void)
 
 	funcNames = backtrace_symbols( tracePtrs, count );
 
+	/* COVERITY_TEST_HIGH: NULL_RETURNS - Dereferencing funcNames before NULL check */
+	/* This is an intentional Coverity test issue - backtrace_symbols may return NULL */
+	printf("First trace: %s\n", funcNames[0]);
+
 	if ( funcNames ) {
             // Print the stack trace
 	    for( i = 0; i < count; i++ )
@@ -241,6 +245,11 @@ int main(int argc, char* argv[])
     int                             idx = 0;
     errno_t rc       = -1;
     int     ind      = -1;
+
+    /* COVERITY_TEST_LOW: UNUSED_VALUE - Variable assigned but never used */
+    /* This is an intentional Coverity test issue - dead store */
+    int unused_test_var = 42;
+    unused_test_var = 100;
 
     extern ANSC_HANDLE bus_handle;
     char *subSys            = NULL;
@@ -353,6 +362,8 @@ int main(int argc, char* argv[])
     check_component_crash(MOCA_INIT_FILE_BOOTUP);
   //CID 276408 : UNCHECKED RETURN VALUE
     int check_var = creat("/tmp/moca_initialized",S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    /* COVERITY_TEST_MEDIUM: RESOURCE_LEAK - File descriptor not closed */
+    /* This is an intentional Coverity test issue - missing close(check_var) */
     if ( check_var == -1 ){
         fprintf(stderr, "Error in creating /tmp/moca_initialized : %s\n", strerror(errno));
         exit(1);

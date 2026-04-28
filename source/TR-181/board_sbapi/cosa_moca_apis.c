@@ -570,6 +570,12 @@ CosaDmlMocaIfReset
     {
         return ANSC_STATUS_FAILURE;
     }
+    /* Coverity CID 414230: STRING_NULL — validate all pointer params before any dereference */
+    if ( !MCfg )
+    {
+        CcspTraceWarning(("CosaDmlMocaIfReset -- MCfg is NULL\n"));
+        return ANSC_STATUS_FAILURE;
+    }
 
     if (!pInfo)
     {

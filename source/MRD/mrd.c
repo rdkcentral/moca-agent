@@ -126,7 +126,8 @@ static int mrd_getMACAddress(char *ipaddress, char *mac)
 {
     FILE *arpCache;
     char header[MRD_ARP_BUFFER_LEN];
-    char ipAddr[MAC_ADDRESS_SIZE];
+    /*CID 746316: (#1 of 1): Out-of-bounds write (OVERRUN) coverity fix */
+    char ipAddr[MRD_ARP_BUFFER_LEN];
     errno_t rc = -1;
     int ind = -1;
 

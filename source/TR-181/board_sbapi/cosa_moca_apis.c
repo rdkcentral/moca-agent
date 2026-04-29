@@ -1067,9 +1067,11 @@ CosaDmlMocaIfGetCfg
            return ANSC_STATUS_FAILURE;
         }
         /* Coverity CID 348463: STRING_NULL — ensure HAL string fields are terminated.
-         * NOTE: Do NOT treat UCHAR masks as strings (FreqCurrentMaskSetting/NodeTabooMask/ChannelScanMask).*/
+         * NodeTabooMask is also null-terminated as moca_SetIfConfig expects a null-terminated string.
+         * NOTE: Do NOT treat FreqCurrentMaskSetting/ChannelScanMask as strings (binary byte arrays).*/
           mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
           mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
+          mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = '\0';
 
         /* XF3-5279 - PCOSA_DML_MOCA_IF_CFG instancenumber starts from 1.
          * but moca_cfg_t instance number starts from 0.

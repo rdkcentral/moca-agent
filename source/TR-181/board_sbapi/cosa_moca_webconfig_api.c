@@ -300,11 +300,13 @@ int rollback_moca_conf()
         /* Coverity CID 348464: STRING_NULL — ensure HAL string fields are terminated */
            mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
            mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
-
+           
         if( g_bMocaEnable_bkup != mocaCfg.bEnabled )
         {
             CcspTraceWarning(("%s: updating hal with backup value %d \n", __FUNCTION__, g_bMocaEnable_bkup ));
             mocaCfg.bEnabled = g_bMocaEnable_bkup;
+	    /* Coverity CID 348464: STRING_NULL — ensure HAL string fields are terminated */
+	    mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = 0;
             if ( moca_SetIfConfig(0, &mocaCfg) != STATUS_SUCCESS)
             {
                 CcspTraceWarning(("%s: rollback_moca_conf hal call failed \n", __FUNCTION__));

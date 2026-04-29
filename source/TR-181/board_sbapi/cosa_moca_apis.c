@@ -611,6 +611,7 @@ CosaDmlMocaIfReset
                 }
                 mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
                 mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
+                mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = '\0';
 
 		/* MoCA Interface Setting to FALSE and syscfg commit it. That mean, we are disabled the MoCA interface here */
 		CcspTraceWarning(("%s > Disabling MoCA Interface...\n", __func__));

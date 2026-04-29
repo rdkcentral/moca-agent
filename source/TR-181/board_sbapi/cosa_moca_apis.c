@@ -735,6 +735,7 @@ CosaDmlMocaIfSetCfg
                            ERR_CHK(rc);
                            return ANSC_STATUS_FAILURE;
                         }
+			mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = '\0';
 			/* Default Values Due to Reset Condition */
 			mocaCfg.ChannelScanning 				= TRUE;
 			mocaCfg.bPreferredNC 					= TRUE;
@@ -806,6 +807,7 @@ CosaDmlMocaIfSetCfg
                             ERR_CHK(rc);
                             return ANSC_STATUS_FAILURE;
                         }
+			mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = '\0';
 			mocaCfg.AutoPowerControlPhyRate 		= pCfg->AutoPowerControlPhyRate;
 			rc = memcpy_s(mocaCfg.ChannelScanMask, sizeof(mocaCfg.ChannelScanMask), pCfg->X_CISCO_COM_ChannelScanMask, sizeof(mocaCfg.ChannelScanMask));
                         if(rc != EOK)

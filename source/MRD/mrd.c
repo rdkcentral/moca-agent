@@ -46,7 +46,7 @@
 #define MRD_ARP_BUFFER_LEN  (MRD_ARP_STRING_LEN + 1)
 /* Format for reading the 1st, and 4th space-delimited fields */
 #define MRD_ARP_LINE_FORMAT "%1023s %*s %*s " \
-                        "%1023s %*s %*s"
+                        "%19s %*s %*s"
 #define MRD_SHM_EXISTS 17
 #define MRD_MAX_LOG 20000
 #define MRD_LOG_FILE "/rdklogs/logs/mrdtrace.log"
@@ -126,7 +126,8 @@ static int mrd_getMACAddress(char *ipaddress, char *mac)
 {
     FILE *arpCache;
     char header[MRD_ARP_BUFFER_LEN];
-    char ipAddr[MAC_ADDRESS_SIZE];
+    /*CID 746316: (#1 of 1): Out-of-bounds write (OVERRUN) coverity fix */
+    char ipAddr[MRD_ARP_BUFFER_LEN];
     errno_t rc = -1;
     int ind = -1;
 

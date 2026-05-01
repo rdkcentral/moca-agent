@@ -576,7 +576,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
 void Set_MoCADevices_Status_Offline()
 {
     CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s ENTER\n", __FUNCTION__ ));
-    
+    CcspTraceWarning(("Deepak %s:%d ENTER\n", __FUNCTION__,__LINE__ )); 
     pthread_mutex_lock(&mocaListMutex);
 
     if(mocaList)
@@ -604,6 +604,8 @@ void Set_MoCADevices_Status_Offline()
                     cur->ssidType = strdup("Device.MoCA.Interface.1.");
                     cur->Updated = 1;
                     cur->StatusChange = 1;
+		    CcspTraceWarning(("Deepak important Debug RDKB-62906 :%s:%d cur->ssidType:%s cur->AssociatedDevice:%s\n",__FUNCTION__,__LINE__,cur->ssidType, cur->Assoc
+iatedDevice));
                 }
 
             cur = cur->next;
@@ -618,7 +620,7 @@ void Set_MoCADevices_Status_Offline()
 void Send_Update_to_LMLite(BOOL defaultSend)
 {
     CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s ENTER defaultSend[%d] \n", __FUNCTION__, defaultSend ));
-    
+    CcspTraceWarning(("Deepak important Debug RDKB-62906 : %s ENTER defaultSend[%d] \n", __FUNCTION__, defaultSend )); 
     pthread_mutex_lock(&mocaListMutex);
 
     if(mocaList)
@@ -646,6 +648,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
                 char*                faultParam      = NULL;
                 int                  ret             = 0; 
                 
+                CcspTraceWarning(("Deepak important Debug RDKB-62906 : %s ENTER defaultSend[%d] \n", __FUNCTION__, defaultSend )); 
 
                 /* 
                 * Group Received Associated Params as below,

@@ -498,12 +498,12 @@ MoCA_SetParamBoolValue
 
     /* check the parameter name and set the corresponding value */
     rc = strcmp_s("X_RDKCENTRAL-COM_MoCAHost_Sync", strlen("X_RDKCENTRAL-COM_MoCAHost_Sync"), ParamName, &ind );
-    CcspTraceWarning((Deepak cur->Status Debug RDKB-62906 before  calling Send_Update_to_LMLite(TRUE):"%s:%d \n",__FUNCTION__,__LINE));
+    CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 before  calling Send_Update_to_LMLite(TRUE):%s:%d \n",__FUNCTION__,__LINE__));
     ERR_CHK(rc);
     if((!ind) && (rc == EOK))
     {
         
-        CcspTraceWarning((Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(TRUE):"%s:%d \n",__FUNCTION__,__LINE));
+        CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(TRUE):%s:%d \n",__FUNCTION__,__LINE__));
         Send_Update_to_LMLite(TRUE);
         return TRUE;
     }

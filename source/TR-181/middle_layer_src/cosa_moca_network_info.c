@@ -635,7 +635,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Status %d \n", __FUNCTION__ , cur->Status));
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Updated %d \n", __FUNCTION__ , cur->Updated));
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->StatusChange  %d \n", __FUNCTION__ , cur->StatusChange ));
-            CcspTraceWarning(("Deepak Debug RDKB-62906 :%s:%d cur->deviceMac:%s cur->parentMac %s cur->ssidType %s cur->AssociatedDevice  cur->RSSI %d  cur->Status %d cur->Updated %d cur->StatusChange  %d defaultSend:%d\n",__FUNCTION__,__LINE__,cur->deviceMac,cur->parentMac,cur->ssidType,cur->AssociatedDevice, cur->RSSI,cur->Updated,cur->StatusChange,  cur->Status,defaultSend));
+            CcspTraceWarning(("Deepak Debug RDKB-62906 :%s:%d cur->deviceMac:%s cur->parentMac %s cur->ssidType %s cur->AssociatedDevice:%s  cur->RSSI %d  cur->Status %d cur->Updated %d cur->StatusChange  %d defaultSend:%d\n",__FUNCTION__,__LINE__,cur->deviceMac,cur->parentMac,cur->ssidType,cur->AssociatedDevice, cur->RSSI,cur->Updated,cur->StatusChange,  cur->Status,defaultSend));
             if(cur->StatusChange || defaultSend == TRUE)
             {
                 parameterValStruct_t notif_val[1];

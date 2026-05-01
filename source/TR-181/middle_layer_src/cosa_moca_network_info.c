@@ -635,7 +635,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Status %d \n", __FUNCTION__ , cur->Status));
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->Updated %d \n", __FUNCTION__ , cur->Updated));
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s cur->StatusChange  %d \n", __FUNCTION__ , cur->StatusChange ));
-            CcspTraceWarning((Deepak Debug RDKB-62906 :"%s:%d cur->deviceMac:%s cur->parentMac %s cur->ssidType %s cur->AssociatedDevice  cur->RSSI %d  cur->Status %d cur->Updated %d cur->StatusChange  %d defaultSend:%d\n",__FUNCTION__,__LINE,cur->deviceMac,cur->parentMac,cur->ssidType,cur->AssociatedDevice, cur->RSSI,cur->Updated,cur->StatusChange,  cur->Status,defaultSend));
+            CcspTraceWarning(("Deepak Debug RDKB-62906 :%s:%d cur->deviceMac:%s cur->parentMac %s cur->ssidType %s cur->AssociatedDevice  cur->RSSI %d  cur->Status %d cur->Updated %d cur->StatusChange  %d defaultSend:%d\n",__FUNCTION__,__LINE,cur->deviceMac,cur->parentMac,cur->ssidType,cur->AssociatedDevice, cur->RSSI,cur->Updated,cur->StatusChange,  cur->Status,defaultSend));
             if(cur->StatusChange || defaultSend == TRUE)
             {
                 parameterValStruct_t notif_val[1];
@@ -661,7 +661,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
                                             (NULL != cur->deviceType) ? cur->deviceType : "NULL", 
                                             cur->RSSI,
                                             cur->Status);
-		 CcspTraceWarning((Deepak cur->Status Debug RDKB-62906 :"%s:%d str:%s  cur->parentMac:%s\n",__FUNCTION__,__LINE,str, cur->parentMac));
+		 CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 :%s:%d str:%s  cur->parentMac:%s\n",__FUNCTION__,__LINE,str, cur->parentMac));
 		}
 		else
 		{
@@ -673,7 +673,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
                                             "Device.MoCA.Interface.1.",
                                             cur->RSSI,
                                             cur->Status);
-		 CcspTraceWarning((Deepak else cur->Status Debug RDKB-62906 :"%s:%d str:%s  cur->parentMac:%s\n",__FUNCTION__,__LINE,str, cur->parentMac));
+		 CcspTraceWarning(("Deepak else cur->Status Debug RDKB-62906 :%s:%d str:%s  cur->parentMac:%s\n",__FUNCTION__,__LINE,str, cur->parentMac));
 
 		}
                 
@@ -683,7 +683,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
                 notif_val[0].parameterValue = str;
                 notif_val[0].type           = ccsp_string;
                 
-		 CcspTraceWarning((Deepak cur->Status Debug RDKB-62906 :"%s:%d calling CcspBaseIf_setParameterValues\n",__FUNCTION__,__LINE));
+		 CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 :%s:%d calling CcspBaseIf_setParameterValues\n",__FUNCTION__,__LINE));
                 ret = CcspBaseIf_setParameterValues(  bus_handle,
                                                       component,
                                                       bus,
@@ -836,13 +836,13 @@ void* SynchronizeMoCADevices(void *arg)
             }
 
             Set_MoCADevices_Status_Offline();
-            CcspTraceWarning((Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(false):"%s:%d \n",__FUNCTION__,__LINE));
+            CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(false):%s:%d \n",__FUNCTION__,__LINE));
             Send_Update_to_LMLite(FALSE);
         }
         else
         {
            //removing the if condition as it is being checked again inside the following functions
-            CcspTraceWarning((Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(false):"%s:%d \n",__FUNCTION__,__LINE));
+            CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(false):%s:%d \n",__FUNCTION__,__LINE));
             Set_MoCADevices_Status_Offline();
             Send_Update_to_LMLite(FALSE);                
             CleanupMoCAList();

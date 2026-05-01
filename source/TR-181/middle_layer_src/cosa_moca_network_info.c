@@ -604,8 +604,7 @@ void Set_MoCADevices_Status_Offline()
                     cur->ssidType = strdup("Device.MoCA.Interface.1.");
                     cur->Updated = 1;
                     cur->StatusChange = 1;
-		    CcspTraceWarning(("Deepak important Debug RDKB-62906 :%s:%d cur->ssidType:%s cur->AssociatedDevice:%s\n",__FUNCTION__,__LINE__,cur->ssidType, cur->Assoc
-iatedDevice));
+		    CcspTraceWarning(("Deepak important Debug RDKB-62906 :%s:%d cur->ssidType:%s cur->AssociatedDevice:%s\n",__FUNCTION__,__LINE__,cur->ssidType, cur->AssociatedDevice));
                 }
 
             cur = cur->next;

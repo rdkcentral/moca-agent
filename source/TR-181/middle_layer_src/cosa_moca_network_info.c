@@ -370,6 +370,7 @@ MocaIf_GetAssocDevices
 				return ANSC_STATUS_FAILURE;
 			    }
 			    CcspTraceWarning(("Deepak %s:%d Trace MACADDRESS pdevice_array[%d].MACAddress:%s\n", __FUNCTION__,__LINE__ ,i,pdevice_array[i].MACAddress));
+			    cspTraceWarning(("Deepak %s:%d  Trace MACADDRESS pDeviceArray->MACAddress:%s\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress));
                             pDeviceArray->NodeID                      = pdevice_array[i].NodeID;
                             pDeviceArray->PreferredNC                 = pdevice_array[i].PreferredNC;
                             rc = memcpy_s(pDeviceArray->HighestVersion,  sizeof(pDeviceArray->HighestVersion), pdevice_array[i].HighestVersion, sizeof(pDeviceArray->HighestVersion));
@@ -395,6 +396,7 @@ MocaIf_GetAssocDevices
                             pDeviceArray->X_CISCO_COM_NumberOfClients = pdevice_array[i].NumberOfClients;
                             ++pDeviceArray;  
                             ++DeviceArrayCount;
+			    CcspTraceWarning(("Deepak %s:%d trace MACADDRESS pDeviceArray->MACAddress:%s DeviceArrayCount:%d is actual number of elements in the returned array\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress,DeviceArrayCount));
                            }
                         }
 
@@ -420,7 +422,7 @@ MocaIf_GetAssocDevices
                                sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",cpes[j].mac_addr[0],cpes[j].mac_addr[1],cpes[j].mac_addr[2],cpes[j].mac_addr[3],cpes[j].mac_addr[4],cpes[j].mac_addr[5]);
 #endif
                                appendEntry = FALSE;
-
+                               CcspTraceWarning(("Deepak %s:%d trace MACADDRESS mac:%s\n", __FUNCTION__,__LINE__,mac));
                                /* Check all MACS in cpes and append if missing from pdevice_array */
 
                                for(k = 0; k < i; k++)
@@ -457,6 +459,8 @@ MocaIf_GetAssocDevices
                                         /* The returned count is the actual number of elements in the returned array */
 
                                         *pulCount = DeviceArrayCount;
+
+					cspTraceWarning(("Deepak %s:%d trace MACADDRESS pDeviceArray->MACAddress:%s DeviceArrayCount:%d is actual number of elements in the returned array\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress,DeviceArrayCount));
                                     }
                                 }
                               
@@ -818,6 +822,7 @@ void* SynchronizeMoCADevices(void *arg)
         ulCount = 0;
         ret = MocaIf_GetAssocDevices(ulInterfaceIndex, &ulCount, &ppDeviceArray);
         CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0\n", __FUNCTION__,__LINE__ )); 
+	CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0 ulCount:%d\n", __FUNCTION__,__LINE__ ulCount));
         if(ret == ANSC_STATUS_SUCCESS && ppDeviceArray && ulCount > 0)
         {
             CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 1\n", __FUNCTION__,__LINE__ )); 
@@ -850,12 +855,15 @@ void* SynchronizeMoCADevices(void *arg)
                     Set_MoCADevices_Status_Online(CpeMacHoldingBuf, i);                    
             	}
                 else //DEEPAK_ADDED
+		{
 		    Set_MoCADevices_Status_Offline();  //DEEPAK_ADDED
+                    Send_Update_to_LMLite(FALSE); //DEEPAK_ADDED
+                }
             }
 
             //Set_MoCADevices_Status_Offline(); //DEEPAK_commented
             CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(false):%s:%d \n",__FUNCTION__,__LINE__));
-            Send_Update_to_LMLite(FALSE);
+            //Send_Update_to_LMLite(FALSE);
         }
         else
         {

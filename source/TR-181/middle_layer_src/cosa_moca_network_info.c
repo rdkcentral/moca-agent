@@ -353,9 +353,11 @@ MocaIf_GetAssocDevices
                     INT                 iReturnStatus   = STATUS_SUCCESS;
                     PCOSA_DML_MOCA_ASSOC_DEVICE pDeviceArray = *ppDeviceArray;
 
+                    CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS  calling moca_GetAssociatedDevices\n", __FUNCTION__,__LINE__ )); 
                     iReturnStatus = moca_GetAssociatedDevices(ulInterfaceIndex, &pdevice_array);
                     if ( iReturnStatus == STATUS_SUCCESS )
                     {
+                        CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS moca_GetAssociatedDevices iReturnStatus == STATUS_SUCCESS\n", __FUNCTION__,__LINE__ )); 
                         /* Translate the Data Structures */
                         for (i = 0; i < *pulCount; i++)  
                         {
@@ -367,6 +369,7 @@ MocaIf_GetAssocDevices
                                 ERR_CHK(rc);
 				return ANSC_STATUS_FAILURE;
 			    }
+			    CcspTraceWarning(("Deepak %s:%d Trace MACADDRESS pdevice_array[%d].MACAddress:%s\n", __FUNCTION__,__LINE__ ,i,pdevice_array[i].MACAddress));
                             pDeviceArray->NodeID                      = pdevice_array[i].NodeID;
                             pDeviceArray->PreferredNC                 = pdevice_array[i].PreferredNC;
                             rc = memcpy_s(pDeviceArray->HighestVersion,  sizeof(pDeviceArray->HighestVersion), pdevice_array[i].HighestVersion, sizeof(pDeviceArray->HighestVersion));
@@ -515,6 +518,7 @@ MocaIf_GetAssocDevices
 void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
 {
     CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s ENTER\n", __FUNCTION__ ));
+    CcspTraceWarning(("Deepak important Debug RDKB-62906 ENTER: :%s:%d \n",__FUNCTION__,__LINE__));
     char paramname[128];
     errno_t rc = -1;
     snprintf(paramname, sizeof(paramname), "Device.MoCA.Interface.1.AssociatedDevice.%d.", assoc_dev_num+1);
@@ -530,6 +534,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
 	    ERR_CHK(rc);
 	    if (assoc_device_mac) {
 		moca_device->deviceMac = strdup(assoc_device_mac);
+                CcspTraceWarning(("Deepak important Debug RDKB-62906 tracing MACADDRESS IF calling add_to_moca_list(moca_device) in func: :%s:%d moca_device->ssidType:%s moca_device->AssociatedDevice:%s moca_device->deviceMac:%s moca_device->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,moca_device->ssidType, moca_device->AssociatedDevice,moca_device->deviceMac));
 	   }
         getDeviceMac();
 
@@ -543,6 +548,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
         moca_device->Status = 1;
         moca_device->Updated = 1;
         moca_device->StatusChange = 1;
+        CcspTraceWarning(("Deepak important Debug RDKB-62906 tracing MACADDRESS IF calling add_to_moca_list(moca_device) in func: :%s:%d moca_device->ssidType:%s moca_device->AssociatedDevice:%s moca_device->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,moca_device->ssidType, moca_device->AssociatedDevice));
         add_to_moca_list(moca_device);
         }
     }
@@ -552,6 +558,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
         {
             device_info->StatusChange = 0;
             device_info->Updated = 1;
+	    CcspTraceWarning(("Deepak important Debug RDKB-62906 Else if :%s:%d device_info->ssidType:%s device_info->AssociatedDevice:%s cur->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,device_info->ssidType, device_info->AssociatedDevice));
         }
         else
         {
@@ -569,6 +576,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
                 device_info->ssidType = NULL;
             }
             device_info->ssidType = strdup("Device.MoCA.Interface.1.");
+            CcspTraceWarning(("Deepak important Debug RDKB-62906 Else -else in :%s:%d device_info->ssidType:%s device_info->AssociatedDevice:%s device_info->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,device_info->ssidType, device_info->AssociatedDevice));
         }
     }
 }          
@@ -590,6 +598,7 @@ void Set_MoCADevices_Status_Offline()
             
             if(!cur->Updated && cur->Status)
                 {
+                   CcspTraceWarning(("Deepak %s:%d rack MACADDRESS !cur->Updated && cur->Status\n", __FUNCTION__,__LINE__ )); 
                     cur->Status = 0;
                     // need to free before copy new string data over
                     if (cur->AssociatedDevice) {
@@ -604,7 +613,7 @@ void Set_MoCADevices_Status_Offline()
                     cur->ssidType = strdup("Device.MoCA.Interface.1.");
                     cur->Updated = 1;
                     cur->StatusChange = 1;
-		    CcspTraceWarning(("Deepak important Debug RDKB-62906 :%s:%d cur->ssidType:%s cur->AssociatedDevice:%s\n",__FUNCTION__,__LINE__,cur->ssidType, cur->AssociatedDevice));
+		    CcspTraceWarning(("Deepak important Debug RDKB-62906 :%s:%d cur->ssidType:%s cur->AssociatedDevice:%s cur->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,cur->ssidType, cur->AssociatedDevice));
                 }
 
             cur = cur->next;
@@ -803,12 +812,15 @@ void* SynchronizeMoCADevices(void *arg)
     errno_t rc = -1;
     int ind = -1;
 
+    CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS\n", __FUNCTION__,__LINE__ )); 
     while(TRUE)
     {
         ulCount = 0;
         ret = MocaIf_GetAssocDevices(ulInterfaceIndex, &ulCount, &ppDeviceArray);
+        CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0\n", __FUNCTION__,__LINE__ )); 
         if(ret == ANSC_STATUS_SUCCESS && ppDeviceArray && ulCount > 0)
         {
+            CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 1\n", __FUNCTION__,__LINE__ )); 
             CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, SynchronizeMoCADevices  ulCount [%lu] \n", ulCount));
 
             for(i = 0, ps = ppDeviceArray;  i < ulCount; i++, ps++)
@@ -828,16 +840,20 @@ void* SynchronizeMoCADevices(void *arg)
                 CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, SynchronizeMoCADevices  MACAddress [%s] \n", CpeMacHoldingBuf));
 		rc =  strcmp_s(CpeMacHoldingBuf, sizeof(CpeMacHoldingBuf), "00:00:00:00:00:00", &ind);
 		ERR_CHK(rc);
+                CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS  CpeMacHoldingBuf:%s copied from ppDeviceArray ind:%d \n", __FUNCTION__,__LINE__ ,CpeMacHoldingBuf,ind)); 
                 if(/* ( NULL != ps->MACAddress ) && \
 					( '\0' != ps->MACAddress[ 0 ] ) && \*/
 					( (rc == EOK) && (ind) )
 				   )
             	{
+                    CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS  CpeMacHoldingBuf:%s calling Set_MoCADevices_Status_Online i=%d \n", __FUNCTION__,__LINE__ ,CpeMacHoldingBuf,i)); 
                     Set_MoCADevices_Status_Online(CpeMacHoldingBuf, i);                    
             	}
+                else //DEEPAK_ADDED
+		    Set_MoCADevices_Status_Offline();  //DEEPAK_ADDED
             }
 
-            Set_MoCADevices_Status_Offline();
+            //Set_MoCADevices_Status_Offline(); //DEEPAK_commented
             CcspTraceWarning(("Deepak cur->Status Debug RDKB-62906 calling Send_Update_to_LMLite(false):%s:%d \n",__FUNCTION__,__LINE__));
             Send_Update_to_LMLite(FALSE);
         }

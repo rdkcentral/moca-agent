@@ -822,7 +822,7 @@ void* SynchronizeMoCADevices(void *arg)
         ulCount = 0;
         ret = MocaIf_GetAssocDevices(ulInterfaceIndex, &ulCount, &ppDeviceArray);
         CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0\n", __FUNCTION__,__LINE__ )); 
-	CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0 ulCount:%d\n", __FUNCTION__,__LINE__, ulCount));
+	CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0 ulCount:%lu\n", __FUNCTION__,__LINE__, ulCount));
         if(ret == ANSC_STATUS_SUCCESS && ppDeviceArray && ulCount > 0)
         {
             CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 1\n", __FUNCTION__,__LINE__ )); 

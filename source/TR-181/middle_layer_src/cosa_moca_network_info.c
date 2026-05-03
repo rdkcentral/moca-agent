@@ -370,7 +370,7 @@ MocaIf_GetAssocDevices
 				return ANSC_STATUS_FAILURE;
 			    }
 			    CcspTraceWarning(("Deepak %s:%d Trace MACADDRESS pdevice_array[%d].MACAddress:%s\n", __FUNCTION__,__LINE__ ,i,pdevice_array[i].MACAddress));
-			    cspTraceWarning(("Deepak %s:%d  Trace MACADDRESS pDeviceArray->MACAddress:%s\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress));
+			    CcspTraceWarning(("Deepak %s:%d  Trace MACADDRESS pDeviceArray->MACAddress:%s\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress));
                             pDeviceArray->NodeID                      = pdevice_array[i].NodeID;
                             pDeviceArray->PreferredNC                 = pdevice_array[i].PreferredNC;
                             rc = memcpy_s(pDeviceArray->HighestVersion,  sizeof(pDeviceArray->HighestVersion), pdevice_array[i].HighestVersion, sizeof(pDeviceArray->HighestVersion));
@@ -460,7 +460,7 @@ MocaIf_GetAssocDevices
 
                                         *pulCount = DeviceArrayCount;
 
-					cspTraceWarning(("Deepak %s:%d trace MACADDRESS pDeviceArray->MACAddress:%s DeviceArrayCount:%d is actual number of elements in the returned array\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress,DeviceArrayCount));
+					CcspTraceWarning(("Deepak %s:%d trace MACADDRESS pDeviceArray->MACAddress:%s DeviceArrayCount:%d is actual number of elements in the returned array\n", __FUNCTION__,__LINE__,pDeviceArray->MACAddress,DeviceArrayCount));
                                     }
                                 }
                               
@@ -822,7 +822,7 @@ void* SynchronizeMoCADevices(void *arg)
         ulCount = 0;
         ret = MocaIf_GetAssocDevices(ulInterfaceIndex, &ulCount, &ppDeviceArray);
         CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0\n", __FUNCTION__,__LINE__ )); 
-	CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0 ulCount:%d\n", __FUNCTION__,__LINE__ ulCount));
+	CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 0 ulCount:%d\n", __FUNCTION__,__LINE__, ulCount));
         if(ret == ANSC_STATUS_SUCCESS && ppDeviceArray && ulCount > 0)
         {
             CcspTraceWarning(("Deepak %s:%d Follow for MACADDRESS 1\n", __FUNCTION__,__LINE__ )); 

@@ -318,6 +318,7 @@ MocaIf_GetAssocDevices
 #ifdef CISCO_MOCA_CPE
                 pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
 #endif
+                pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
 
                 if (pnum_cpes > *pulCount)
                 {

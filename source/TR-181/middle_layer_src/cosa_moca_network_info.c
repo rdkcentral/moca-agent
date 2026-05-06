@@ -318,7 +318,7 @@ MocaIf_GetAssocDevices
 #ifdef CISCO_MOCA_CPE
                 pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
 #endif
-        //DEEPAK ADDED        pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
+                pnum_cpes = *pulCount ; //DEEPAK ADDED
 
                 if (pnum_cpes > *pulCount)
                 {
@@ -327,7 +327,9 @@ MocaIf_GetAssocDevices
                 else
                 {
                     allocNum = *pulCount;
+                    AnscTraceWarning(("DEEPAK check for MocaIf_GetAssocDevices pnum_cpes:%d, pulCount:%lu\n", pnum_cpes, *pulCount));
                 }
+                    AnscTraceWarning(("DEEPAK check for MocaIf_GetAssocDevices pnum_cpes:%d, pulCount:%lu\n", pnum_cpes, *pulCount));
 
                 ulSize = sizeof(COSA_DML_MOCA_ASSOC_DEVICE) * (allocNum);
                     
@@ -413,6 +415,7 @@ MocaIf_GetAssocDevices
 
 
                            *pulCount = DeviceArrayCount;
+			   CcspTraceWarning(("Deepak %s:%d ISSUE Code block DeviceArrayCount:%d pnum_cpes:%d is actual number of elements in the returned array\n", __FUNCTION__,__LINE__,DeviceArrayCount, pnum_cpes));
 
                            for(j =0; j < pnum_cpes; j++)
                            {
@@ -423,7 +426,7 @@ MocaIf_GetAssocDevices
                                sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",cpes[j].mac_addr[0],cpes[j].mac_addr[1],cpes[j].mac_addr[2],cpes[j].mac_addr[3],cpes[j].mac_addr[4],cpes[j].mac_addr[5]);
 #endif
                                appendEntry = FALSE;
-                               CcspTraceWarning(("Deepak %s:%d trace MACADDRESS mac:%s\n", __FUNCTION__,__LINE__,mac));
+                               CcspTraceWarning(("Deepak %s:%d trace MACADDRESS mac:%s i:%d\n", __FUNCTION__,__LINE__,mac, i));
                                /* Check all MACS in cpes and append if missing from pdevice_array */
 
                                for(k = 0; k < i; k++)
@@ -431,6 +434,7 @@ MocaIf_GetAssocDevices
 
                                     sprintf(mac1, "%02x:%02x:%02x:%02x:%02x:%02x",pdevice_array[k].MACAddress[0],pdevice_array[k].MACAddress[1],pdevice_array[k].MACAddress[2],pdevice_array[k].MACAddress[3],pdevice_array[k].MACAddress[4],pdevice_array[k].MACAddress[5]);
 
+                               CcspTraceWarning(("Deepak %s:%d trace MACADDRESS mac1:%s i:%d\n", __FUNCTION__,__LINE__,mac1, i));
                                     if(!strncmp(mac1, mac, 18))
 					                {
 					                    appendEntry = FALSE;
@@ -443,6 +447,7 @@ MocaIf_GetAssocDevices
 
                                 /* Append the missing entry onto the pDeviceArray */
 
+                               CcspTraceWarning(("Deepak %s:%d trace MACADDRESS appendEntry:%d i:%d\n", __FUNCTION__,__LINE__, appendEntry, i));
 				                if(appendEntry == TRUE) 
 			            	    {
                                     if((DeviceArrayCount < allocNum) && pDeviceArray)
@@ -456,6 +461,7 @@ MocaIf_GetAssocDevices
 					}
                                         ++pDeviceArray;
                                         ++DeviceArrayCount;
+                                        AnscTraceWarning(("DEEPAK MocaIf_GetAssocDevices -- appending entry: func:%s:%d\n",__FUNCTION__,__LINE__));
 
                                         /* The returned count is the actual number of elements in the returned array */
 
@@ -523,7 +529,7 @@ MocaIf_GetAssocDevices
 void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
 {
     CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s ENTER\n", __FUNCTION__ ));
-    CcspTraceWarning(("Deepak important Debug RDKB-62906 ENTER: :%s:%d \n",__FUNCTION__,__LINE__));
+    CcspTraceWarning(("Deepak important Debug RDKB-62906 ENTER: :%s:%d assoc_device_mac:%s\n",__FUNCTION__,__LINE__,assoc_device_mac));
     char paramname[128];
     errno_t rc = -1;
     snprintf(paramname, sizeof(paramname), "Device.MoCA.Interface.1.AssociatedDevice.%d.", assoc_dev_num+1);
@@ -539,7 +545,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
 	    ERR_CHK(rc);
 	    if (assoc_device_mac) {
 		moca_device->deviceMac = strdup(assoc_device_mac);
-                CcspTraceWarning(("Deepak important Debug RDKB-62906 tracing MACADDRESS IF calling add_to_moca_list(moca_device) in func: :%s:%d moca_device->ssidType:%s moca_device->AssociatedDevice:%s moca_device->deviceMac:%s moca_device->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,moca_device->ssidType, moca_device->AssociatedDevice,moca_device->deviceMac));
+                CcspTraceWarning(("Deepak important Debug RDKB-62906 tracing MACADDRESS in func: :%s:%d moca_device->ssidType:%s moca_device->AssociatedDevice:%s moca_device->deviceMac:%s \n",__FUNCTION__,__LINE__,moca_device->ssidType, moca_device->AssociatedDevice,moca_device->deviceMac));
 	   }
         getDeviceMac();
 
@@ -553,7 +559,7 @@ void Set_MoCADevices_Status_Online(char* assoc_device_mac, int assoc_dev_num)
         moca_device->Status = 1;
         moca_device->Updated = 1;
         moca_device->StatusChange = 1;
-        CcspTraceWarning(("Deepak important Debug RDKB-62906 tracing MACADDRESS IF calling add_to_moca_list(moca_device) in func: :%s:%d moca_device->ssidType:%s moca_device->AssociatedDevice:%s moca_device->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,moca_device->ssidType, moca_device->AssociatedDevice));
+        CcspTraceWarning(("Deepak important Debug RDKB-62906 tracing MACADDRESS IF calling add_to_moca_list(moca_device) in func: :%s:%d moca_device->ssidType:%s moca_device->AssociatedDevice:%s \n",__FUNCTION__,__LINE__,moca_device->ssidType, moca_device->AssociatedDevice));
         add_to_moca_list(moca_device);
         }
     }

@@ -318,7 +318,7 @@ MocaIf_GetAssocDevices
 #ifdef CISCO_MOCA_CPE
                 pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
 #endif
-                pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
+        //DEEPAK ADDED        pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
 
                 if (pnum_cpes > *pulCount)
                 {
@@ -615,10 +615,11 @@ void Set_MoCADevices_Status_Offline()
                         free(cur->ssidType);
                         cur->ssidType = NULL;
                     }
-                    cur->ssidType = strdup("Device.MoCA.Interface.1.");
+                    //cur->ssidType = strdup("Device.MoCA.Interface.1."); 
+                    cur->ssidType = strdup(" "); //DEEPAK ADDED
                     cur->Updated = 1;
                     cur->StatusChange = 1;
-		    CcspTraceWarning(("Deepak important Debug RDKB-62906 :%s:%d cur->ssidType:%s cur->AssociatedDevice:%s cur->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,cur->ssidType, cur->AssociatedDevice));
+		    CcspTraceWarning(("Deepak  important Debug RDKB-62906 :%s:%d SET cur->ssidType:%s to ' ' cur->AssociatedDevice:%s cur->ssidType == Device.MoCA.Interface.1.\n",__FUNCTION__,__LINE__,cur->ssidType, cur->AssociatedDevice));
                 }
 
             cur = cur->next;
@@ -686,7 +687,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
                                             (NULL != cur->AssociatedDevice) ? cur->AssociatedDevice : "NULL",
                                             (NULL != cur->ssidType) ? cur->ssidType : "NULL",
                                             (NULL != cur->parentMac) ? cur->parentMac : "NULL",
-                                            "Device.MoCA.Interface.1.",
+                                            " ",
                                             cur->RSSI,
                                             cur->Status);
 		 CcspTraceWarning(("Deepak else cur->Status Debug RDKB-62906 :%s:%d str:%s  cur->parentMac:%s\n",__FUNCTION__,__LINE__,str, cur->parentMac));

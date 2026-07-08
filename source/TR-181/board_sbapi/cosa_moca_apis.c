@@ -570,6 +570,12 @@ CosaDmlMocaIfReset
     {
         return ANSC_STATUS_FAILURE;
     }
+    /* Coverity CID 414230: STRING_NULL — validate all pointer params before any dereference */
+    if ( !MCfg )
+    {
+        CcspTraceWarning(("CosaDmlMocaIfReset -- MCfg is NULL\n"));
+        return ANSC_STATUS_FAILURE;
+    }
 
     if (!pInfo)
     {
@@ -605,7 +611,7 @@ CosaDmlMocaIfReset
                 }
                 mocaCfg.Alias[sizeof(mocaCfg.Alias) - 1] = '\0';
                 mocaCfg.KeyPassphrase[sizeof(mocaCfg.KeyPassphrase) - 1] = '\0';
-
+		mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = (UCHAR)'\0';
 		/* MoCA Interface Setting to FALSE and syscfg commit it. That mean, we are disabled the MoCA interface here */
 		CcspTraceWarning(("%s > Disabling MoCA Interface...\n", __func__));
 		pCfg->bEnabled = FALSE;
@@ -1069,7 +1075,7 @@ CosaDmlMocaIfGetCfg
          * Hence disabled it. 
          */
 // 		pCfg->InstanceNumber 						= mocaCfg.InstanceNumber;
-		rc = STRCPY_S_NOCLOBBER(pCfg->Alias, sizeof(pCfg->Alias), mocaCfg.Alias);
+               rc = STRCPY_S_NOCLOBBER(pCfg->Alias, sizeof(pCfg->Alias), mocaCfg.Alias);
                 if(rc != EOK)
                 {
                     ERR_CHK(rc);
@@ -1081,6 +1087,8 @@ CosaDmlMocaIfGetCfg
 		{
 			AnscTraceWarning(("syscfg db and moca driver value are not in sync, setting db value to driver\n"));
 			mocaCfg.bEnabled=moca_enable_db;
+		       /* CID 348463 coverity fix for string null error */
+			mocaCfg.NodeTabooMask[sizeof(mocaCfg.NodeTabooMask) - 1] = (UCHAR)'\0';
 	              if ( moca_SetIfConfig(uIndex, &mocaCfg) != STATUS_SUCCESS)
                         {
                          AnscTraceWarning(("moca_SetIfConfig returns error\n"));

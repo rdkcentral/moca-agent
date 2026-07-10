@@ -317,6 +317,8 @@ MocaIf_GetAssocDevices
 
 #ifdef CISCO_MOCA_CPE
                 pnum_cpes = *pulCount ; //temporary work around to bypass connected client behind node implementation for CXB3 due to CISCOXB3-4969
+#else
+                pnum_cpes = *pulCount ; //fix solve incorrect moca client count
 #endif
 
                 if (pnum_cpes > *pulCount)
@@ -601,7 +603,7 @@ void Set_MoCADevices_Status_Offline()
                         free(cur->ssidType);
                         cur->ssidType = NULL;
                     }
-                    cur->ssidType = strdup("Device.MoCA.Interface.1.");
+                    cur->ssidType = strdup(" ");
                     cur->Updated = 1;
                     cur->StatusChange = 1;
                 }
@@ -669,7 +671,7 @@ void Send_Update_to_LMLite(BOOL defaultSend)
                                             (NULL != cur->AssociatedDevice) ? cur->AssociatedDevice : "NULL",
                                             (NULL != cur->ssidType) ? cur->ssidType : "NULL",
                                             (NULL != cur->parentMac) ? cur->parentMac : "NULL",
-                                            "Device.MoCA.Interface.1.",
+                                            " ",
                                             cur->RSSI,
                                             cur->Status);
 
@@ -828,10 +830,13 @@ void* SynchronizeMoCADevices(void *arg)
             	{
                     Set_MoCADevices_Status_Online(CpeMacHoldingBuf, i);                    
             	}
+                else
+		{
+		    Set_MoCADevices_Status_Offline();
+                    Send_Update_to_LMLite(FALSE);
+                }
             }
 
-            Set_MoCADevices_Status_Offline();
-            Send_Update_to_LMLite(FALSE);
         }
         else
         {

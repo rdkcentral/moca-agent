@@ -712,7 +712,9 @@ CosaDmlMocaIfSetCfg
                              ERR_CHK(rc);
                              return ANSC_STATUS_FAILURE;
                         }
-			rc = memcpy_s(mocaCfg.FreqCurrentMaskSetting, sizeof(mocaCfg.FreqCurrentMaskSetting), pCfg->FreqCurrentMaskSetting, sizeof(mocaCfg.FreqCurrentMaskSetting));
+			/* Coverity CID 21468: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
+			UCHAR *pFreqCurrentMaskSetting = pCfg->FreqCurrentMaskSetting;
+			rc = memcpy_s(mocaCfg.FreqCurrentMaskSetting, sizeof(mocaCfg.FreqCurrentMaskSetting), pFreqCurrentMaskSetting, sizeof(mocaCfg.FreqCurrentMaskSetting));
                         if(rc != EOK)
                         {
                            ERR_CHK(rc);
@@ -1139,7 +1141,8 @@ CosaDmlMocaIfGetCfg
 		pCfg->X_CISCO_COM_ChannelScanning 			= mocaCfg.ChannelScanning;
 		pCfg->X_CISCO_COM_AutoPowerControlEnable 	= mocaCfg.AutoPowerControlEnable;
 		pCfg->X_CISCO_COM_EnableTabooBit 			= mocaCfg.EnableTabooBit;
-		rc = MEMCPY_S_NOCLOBBER(pCfg->NodeTabooMask, sizeof(pCfg->NodeTabooMask), mocaCfg.NodeTabooMask, sizeof(mocaCfg.NodeTabooMask));
+		/* Coverity CID 21466: NO_EFFECT -- NodeTabooMask is a fixed array, never NULL; use memcpy_s directly */
+		rc = memcpy_s(pCfg->NodeTabooMask, sizeof(pCfg->NodeTabooMask), mocaCfg.NodeTabooMask, sizeof(mocaCfg.NodeTabooMask));
                 if(rc != EOK)
                 {
                     ERR_CHK(rc);
@@ -1226,7 +1229,9 @@ CosaDmlMocaIfGetDinfo
 #ifdef MOCA_DIAGONISTIC
 		pInfo->LinkUpTime 								= mocaDInfo.LinkUpTime;
 #endif
-		rc = memcpy_s(pInfo->X_CISCO_NetworkCoordinatorMACAddress, sizeof(pInfo->X_CISCO_NetworkCoordinatorMACAddress), mocaDInfo.NetworkCoordinatorMACAddress, sizeof(pInfo->X_CISCO_NetworkCoordinatorMACAddress));
+		/* Coverity CID 63045: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
+		UCHAR *pNetworkCoordinatorMACAddress = mocaDInfo.NetworkCoordinatorMACAddress;
+		rc = memcpy_s(pInfo->X_CISCO_NetworkCoordinatorMACAddress, sizeof(pInfo->X_CISCO_NetworkCoordinatorMACAddress), pNetworkCoordinatorMACAddress, sizeof(pInfo->X_CISCO_NetworkCoordinatorMACAddress));
                 if (rc != EOK)
                 {
                      ERR_CHK(rc);
@@ -1274,16 +1279,19 @@ CosaDmlMocaIfGetStaticInfo
         moca_IfGetStaticInfo(uIndex, &mocaStaticCfg);
 		
 		/* Translate the data structures */
+/* Coverity CID 63049: NO_EFFECT -- alias to pointer so STRCPY_S_NOCLOBBER's NULL-check isn't always-true on the literal */
 #ifdef MULTILAN_FEATURE
 #if defined(INTEL_PUMA7)
-                rc = STRCPY_S_NOCLOBBER(pSInfo->Name, sizeof(pSInfo->Name), "nmoca0");
+                const char *pIfName = "nmoca0";
+                rc = STRCPY_S_NOCLOBBER(pSInfo->Name, sizeof(pSInfo->Name), pIfName);
                 if (rc != EOK)
                 {
                     ERR_CHK(rc);
                     return ANSC_STATUS_FAILURE;
                 }
 #else
-                rc = STRCPY_S_NOCLOBBER(pSInfo->Name, sizeof(pSInfo->Name), "sw_5");
+                const char *pIfName = "sw_5";
+                rc = STRCPY_S_NOCLOBBER(pSInfo->Name, sizeof(pSInfo->Name), pIfName);
                 if (rc != EOK)
                 {
                     ERR_CHK(rc);
@@ -1291,7 +1299,8 @@ CosaDmlMocaIfGetStaticInfo
                 }
 #endif
 #else
-                rc = STRCPY_S_NOCLOBBER(pSInfo->Name, sizeof(pSInfo->Name), "sw_5");
+                const char *pIfName = "sw_5";
+                rc = STRCPY_S_NOCLOBBER(pSInfo->Name, sizeof(pSInfo->Name), pIfName);
                 if (rc != EOK)
                 {
                     ERR_CHK(rc);
@@ -1918,7 +1927,9 @@ CosaDmlMocaIfGetAssocDevices
                                         }
     					pDeviceArray->NodeID 							= pdevice_array[i].NodeID;
     					pDeviceArray->PreferredNC 						= pdevice_array[i].PreferredNC;
-                                        rc = memcpy_s(pDeviceArray->HighestVersion, sizeof(pDeviceArray->HighestVersion), pdevice_array[i].HighestVersion, sizeof(pDeviceArray->HighestVersion));
+                                        /* Coverity CID 63053: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
+                                        UCHAR *pHighestVersion = pdevice_array[i].HighestVersion;
+                                        rc = memcpy_s(pDeviceArray->HighestVersion, sizeof(pDeviceArray->HighestVersion), pHighestVersion, sizeof(pDeviceArray->HighestVersion));
                                         if(rc != EOK)
                                         {
                                               ERR_CHK(rc);

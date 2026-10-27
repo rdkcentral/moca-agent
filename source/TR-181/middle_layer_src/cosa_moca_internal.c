@@ -224,7 +224,11 @@ void CosaMoCAUpdate()
 
 	if (sysevent_fd >= 0)
 	{
-		pthread_create(&sysevent_tid, NULL, Moca_sysevent_handler, NULL);
+		int res = pthread_create(&sysevent_tid, NULL, Moca_sysevent_handler, NULL);
+		if (res != 0)
+		{
+			CcspTraceWarning(("CosaMoCAUpdate -- Creating Moca_sysevent_handler Thread error %d\n", res));
+		}
 	}
 	return;
 }
@@ -285,7 +289,9 @@ void MoCA_Log()
 				ERR_CHK(rc);
 				if(ulIndex1 < (AssocDeviceCount-1))
 				{
-					rc = strcat_s(mac_buff1, sizeof(mac_buff1), ",");
+					/* Coverity CID 63052: NO_EFFECT -- alias to pointer so strcat_s's NULL-check isn't always-true on the literal */
+					const char *pComma = ",";
+					rc = strcat_s(mac_buff1, sizeof(mac_buff1), pComma);
 					ERR_CHK(rc);
 				}
 		}
@@ -473,7 +479,9 @@ static void MocaTelemetryPush()
 	    ERR_CHK(rc);
 	    if(ulIndex1 < (AssocDeviceCount-1))
             {
-		rc = strcat_s(mac_buff1, sizeof(mac_buff1), ",");
+		/* Coverity CID 63050: NO_EFFECT -- alias to pointer so strcat_s's NULL-check isn't always-true on the literal */
+		const char *pComma = ",";
+		rc = strcat_s(mac_buff1, sizeof(mac_buff1), pComma);
 		ERR_CHK(rc);
 	    }
 	}

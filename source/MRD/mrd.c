@@ -317,8 +317,10 @@ static void  mrd_updateMcastlistlifetime()
             mrd_log(cmd);
             if ((LanMCcount > 1) && (i != (LanMCcount-1))) 
             {
+               /* Coverity CID 63058: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
+               char *pLastIpAddr = LanMCastTable[LanMCcount-1].ipAddr;
                rc = strcpy_s(LanMCastTable[i].ipAddr,sizeof(LanMCastTable[LanMCcount-1].ipAddr),
-                                                          LanMCastTable[LanMCcount-1].ipAddr);
+                                                          pLastIpAddr);
                if (rc != EOK)
                {
                   ERR_CHK(rc);
@@ -402,7 +404,9 @@ static int mrd_wlistInit()
 	 rc = memset_s(ipAddr, sizeof(ipAddr), 0, sizeof(ipAddr));
 	 ERR_CHK(rc);
 
-	 rc = strcpy_s(ipAddr, sizeof(ipAddr), WanMCastTable[i].ipAddr);
+	 /* Coverity CID 63057: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
+	 char *pSrcIpAddr = WanMCastTable[i].ipAddr;
+	 rc = strcpy_s(ipAddr, sizeof(ipAddr), pSrcIpAddr);
 	 route_delete_va_arg("%s table moca", ipAddr);
 	 v_secure_system("arp -d  %s", WanMCastTable[i].ipAddr);
          rc = memset_s(WanMCastTable[i].ipAddr, sizeof(WanMCastTable[i].ipAddr),0, sizeof(WanMCastTable[i].ipAddr));

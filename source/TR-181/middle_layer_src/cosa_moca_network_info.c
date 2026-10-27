@@ -88,7 +88,9 @@ int WebpaInterface_DiscoverComponent(char** pcomponentName, char** pcomponentPat
     errno_t rc = -1;
     CcspMoCAConsoleTrace(("RDK_LOG_DEBUG, CcspMoCA %s ENTER\n", __FUNCTION__ ));
 
-    rc = strcpy_s(CrName, sizeof(CrName), "eRT.");
+    /* Coverity CID 63044: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the literal */
+    const char *pErt = "eRT.";
+    rc = strcpy_s(CrName, sizeof(CrName), pErt);
     if(rc != EOK)
     {
 	    ERR_CHK(rc);
@@ -363,7 +365,9 @@ MocaIf_GetAssocDevices
                         {
                            if(pDeviceArray && ((&pdevice_array[i]) != NULL) && (i < allocNum))
                            {
-                            rc = memcpy_s(pDeviceArray->MACAddress, sizeof(pDeviceArray->MACAddress), pdevice_array[i].MACAddress, sizeof(pDeviceArray->MACAddress));
+                            /* Coverity CID 63056: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
+                            UCHAR *pMACAddress = pdevice_array[i].MACAddress;
+                            rc = memcpy_s(pDeviceArray->MACAddress, sizeof(pDeviceArray->MACAddress), pMACAddress, sizeof(pDeviceArray->MACAddress));
 			    if(rc != EOK)
 		            {
                                 ERR_CHK(rc);

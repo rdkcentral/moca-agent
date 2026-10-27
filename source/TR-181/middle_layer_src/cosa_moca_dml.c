@@ -429,7 +429,9 @@ MoCA_GetParamStringValue
     if((!ind) && (rc == EOK))
     {
         /* collect value */
-        rc = strcpy_s(pValue, *pUlSize, (char *)pCfg->X_CISCO_COM_ProvisioningServerAddress);
+        /* Coverity CID 63054: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
+        char *pProvisioningServerAddress = (char *)pCfg->X_CISCO_COM_ProvisioningServerAddress;
+        rc = strcpy_s(pValue, *pUlSize, pProvisioningServerAddress);
         if (rc != EOK)
         {
             ERR_CHK(rc);
@@ -1765,7 +1767,9 @@ Interface1_GetParamStringValue
     if((!ind) && (rc == EOK))
     {
         /* collect value */
-        rc = strcpy_s(pValue, *pUlSize, (PCHAR)pMoCAIfFull->StaticInfo.NetworkTabooMask);
+        /* Coverity CID 63046: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
+        PCHAR pNetworkTabooMask = (PCHAR)pMoCAIfFull->StaticInfo.NetworkTabooMask;
+        rc = strcpy_s(pValue, *pUlSize, pNetworkTabooMask);
         if (rc != EOK)
         {
             ERR_CHK(rc);
@@ -2344,7 +2348,9 @@ Interface1_Validate
     keyPassLen = AnscSizeOfString(pMoCAIfFullTable->MoCAIfFull.Cfg.KeyPassphrase);
     if( (keyPassLen < 12) || (keyPassLen > 17) )
     {
-       rc = strcpy_s(pReturnParamName,  *puLength,"KeyPassphrase");
+       /* Coverity CID 63051: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the literal */
+       const char *pKeyPassphrase = "KeyPassphrase";
+       rc = strcpy_s(pReturnParamName,  *puLength, pKeyPassphrase);
         if (rc != EOK)
         {
             ERR_CHK(rc);
@@ -6160,7 +6166,9 @@ FlowStats_GetParamStringValue
     if((!ind) && (rc == EOK))
     {
         /* collect value */
-	rc = strcpy_s(pValue, *pUlSize, (PCHAR)pConf->DestinationMACAddress);
+        /* Coverity CID 63043: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
+        PCHAR pDestinationMACAddress = (PCHAR)pConf->DestinationMACAddress;
+	rc = strcpy_s(pValue, *pUlSize, pDestinationMACAddress);
         if (rc != EOK)
         {
             ERR_CHK(rc);
@@ -6753,7 +6761,9 @@ AssociatedDevice_GetParamStringValue
     if((!ind) && (rc == EOK))
     {
         /* collect value */
-        rc = strcpy_s(pValue, *pUlSize, pMoCAAssocDevice->HighestVersion);
+        /* Coverity CID 63048: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
+        char *pHighestVersion = pMoCAAssocDevice->HighestVersion;
+        rc = strcpy_s(pValue, *pUlSize, pHighestVersion);
         if (rc != EOK)
         {
             ERR_CHK(rc);
@@ -6950,7 +6960,9 @@ Logging_SetParamBoolValue
     {
 	if(bValue)
     {
-		rc = strcpy_s(buf, sizeof(buf), "true");
+		/* Coverity CID 63047: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the literal */
+		const char *pTrue = "true";
+		rc = strcpy_s(buf, sizeof(buf), pTrue);
                 if (rc != EOK)
                 {
                     ERR_CHK(rc);
@@ -6959,7 +6971,8 @@ Logging_SetParamBoolValue
     }
 	else
     {
-		rc = strcpy_s(buf, sizeof(buf), "false");
+		const char *pFalse = "false";
+		rc = strcpy_s(buf, sizeof(buf), pFalse);
                 if (rc != EOK)
                 {
                     ERR_CHK(rc);

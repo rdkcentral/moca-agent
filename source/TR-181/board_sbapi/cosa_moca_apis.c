@@ -1230,7 +1230,7 @@ CosaDmlMocaIfGetDinfo
 		pInfo->LinkUpTime 								= mocaDInfo.LinkUpTime;
 #endif
 		/* Coverity CID 63045: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
-		UCHAR *pNetworkCoordinatorMACAddress = mocaDInfo.NetworkCoordinatorMACAddress;
+		char *pNetworkCoordinatorMACAddress = mocaDInfo.NetworkCoordinatorMACAddress;
 		rc = memcpy_s(pInfo->X_CISCO_NetworkCoordinatorMACAddress, sizeof(pInfo->X_CISCO_NetworkCoordinatorMACAddress), pNetworkCoordinatorMACAddress, sizeof(pInfo->X_CISCO_NetworkCoordinatorMACAddress));
                 if (rc != EOK)
                 {
@@ -1928,7 +1928,7 @@ CosaDmlMocaIfGetAssocDevices
     					pDeviceArray->NodeID 							= pdevice_array[i].NodeID;
     					pDeviceArray->PreferredNC 						= pdevice_array[i].PreferredNC;
                                         /* Coverity CID 63053: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
-                                        UCHAR *pHighestVersion = pdevice_array[i].HighestVersion;
+                                        char *pHighestVersion = pdevice_array[i].HighestVersion;
                                         rc = memcpy_s(pDeviceArray->HighestVersion, sizeof(pDeviceArray->HighestVersion), pHighestVersion, sizeof(pDeviceArray->HighestVersion));
                                         if(rc != EOK)
                                         {

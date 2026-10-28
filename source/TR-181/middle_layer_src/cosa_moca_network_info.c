@@ -366,7 +366,7 @@ MocaIf_GetAssocDevices
                            if(pDeviceArray && ((&pdevice_array[i]) != NULL) && (i < allocNum))
                            {
                             /* Coverity CID 63056: NO_EFFECT -- alias to pointer so memcpy_s's NULL-check isn't always-true on the fixed array */
-                            UCHAR *pMACAddress = pdevice_array[i].MACAddress;
+                            char *pMACAddress = pdevice_array[i].MACAddress;
                             rc = memcpy_s(pDeviceArray->MACAddress, sizeof(pDeviceArray->MACAddress), pMACAddress, sizeof(pDeviceArray->MACAddress));
 			    if(rc != EOK)
 		            {

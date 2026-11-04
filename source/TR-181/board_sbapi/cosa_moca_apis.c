@@ -1794,7 +1794,10 @@ CosaDmlMocaIfFlowTableGetTable
     }
 
     *pCount = kMoca_MaxMocaNodes;
-    *ppConf = (PCOSA_DML_MOCA_FLOW)AnscAllocateMemory(sizeof(COSA_DML_MOCA_FLOW) * kMoca_MaxMocaNodes);
+    /* Coverity CID 79c9cb36: OVERRUN -- moca_flow_table_t can be larger than COSA_DML_MOCA_FLOW,
+     * so size the allocation for whichever type is bigger before the HAL writes into it. */
+    size_t ulFlowElemSize = sizeof(COSA_DML_MOCA_FLOW) > sizeof(moca_flow_table_t) ? sizeof(COSA_DML_MOCA_FLOW) : sizeof(moca_flow_table_t);
+    *ppConf = (PCOSA_DML_MOCA_FLOW)AnscAllocateMemory(ulFlowElemSize * kMoca_MaxMocaNodes);
 
     if ( !*ppConf )
     {

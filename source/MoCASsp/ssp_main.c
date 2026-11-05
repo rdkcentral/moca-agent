@@ -234,6 +234,16 @@ int drop_root(void)
   return retval;
 }
 
+void leaky_function(void) {
+    char *p = (char *)malloc(100); // allocated but never freed -> leak
+    if (!p) {
+        perror("malloc");
+        return;
+    }
+    strcpy(p, "This buffer is intentionally leaked.");
+    // Missing free(p);  <-- leak
+}
+
 int main(int argc, char* argv[])
 {
     BOOL                            bRunAsDaemon       = TRUE;
@@ -246,6 +256,8 @@ int main(int argc, char* argv[])
     char *subSys            = NULL;
     DmErr_t    err;
     debugLogFile = stderr;
+
+    leaky_function();
 
 #ifdef FEATURE_SUPPORT_RDKLOG
     RDK_LOGGER_INIT();

@@ -6168,7 +6168,7 @@ FlowStats_GetParamStringValue
         /* collect value */
         /* Coverity CID 63043: NO_EFFECT -- alias to pointer so strcpy_s's NULL-check isn't always-true on the fixed array */
         PCHAR pDestinationMACAddress = (PCHAR)pConf->DestinationMACAddress;
-	rc = strcpy_s(pValue, *pUlSize, pDestinationMACAddress);
+		rc = strcpy_s(pValue, *pUlSize, pDestinationMACAddress);
         if (rc != EOK)
         {
             ERR_CHK(rc);

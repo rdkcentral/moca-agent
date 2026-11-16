@@ -834,13 +834,10 @@ void* SynchronizeMoCADevices(void *arg)
             	{
                     Set_MoCADevices_Status_Online(CpeMacHoldingBuf, i);                    
             	}
-                else
-		{
-		    Set_MoCADevices_Status_Offline();
-                    Send_Update_to_LMLite(FALSE);
-                }
             }
 
+            Set_MoCADevices_Status_Offline();
+            Send_Update_to_LMLite(FALSE);
         }
         else
         {

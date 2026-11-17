@@ -1772,6 +1772,7 @@ CosaDmlMocaIfMeshTableGetTable
 /*
     This function is used to get total Flow tables.
     The returned memory should be allocated by AnscAllocateMemory. Or else there is leaking.
+    Translate HAL entries individually because HAL and COSA layouts can differ.
 */
 
 ANSC_STATUS
@@ -1793,26 +1794,67 @@ CosaDmlMocaIfFlowTableGetTable
         return ANSC_STATUS_FAILURE;
     }
 
-    *pCount = kMoca_MaxMocaNodes;
-    /* Coverity CID 79c9cb36: OVERRUN -- moca_flow_table_t can be larger than COSA_DML_MOCA_FLOW,
-     * so size the allocation for whichever type is bigger before the HAL writes into it. */
-    size_t ulFlowElemSize = sizeof(COSA_DML_MOCA_FLOW) > sizeof(moca_flow_table_t) ? sizeof(COSA_DML_MOCA_FLOW) : sizeof(moca_flow_table_t);
-    *ppConf = (PCOSA_DML_MOCA_FLOW)AnscAllocateMemory(ulFlowElemSize * kMoca_MaxMocaNodes);
+    moca_flow_table_t *pflow_table = (moca_flow_table_t *)AnscAllocateMemory
+        (sizeof(moca_flow_table_t) * kMoca_MaxMocaNodes);
 
-    if ( !*ppConf )
+    *ppConf = NULL;
+    *pCount = kMoca_MaxMocaNodes;
+
+    if ( !pflow_table )
     {
         *pCount = 0;
         return ANSC_STATUS_FAILURE;
     }
     
-    if (moca_GetFlowStatistics(ulInterfaceIndex, (moca_flow_table_t*)*ppConf, pCount) != STATUS_SUCCESS)
+    if (moca_GetFlowStatistics(ulInterfaceIndex, pflow_table, pCount) != STATUS_SUCCESS ||
+        *pCount > kMoca_MaxMocaNodes)
     {
-        AnscFreeMemory(*ppConf);
-        *ppConf = NULL;
+        AnscFreeMemory(pflow_table);
         *pCount = 0;
         AnscTraceError(("%s: fail to get MoCA flow table\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
+
+    if ( *pCount )
+    {
+        ULONG i;
+
+        *ppConf = (PCOSA_DML_MOCA_FLOW)AnscAllocateMemory(sizeof(COSA_DML_MOCA_FLOW) * (*pCount));
+        if ( !*ppConf )
+        {
+            AnscFreeMemory(pflow_table);
+            *pCount = 0;
+            return ANSC_STATUS_FAILURE;
+        }
+
+        for (i = 0; i < *pCount; i++)
+        {
+            PCOSA_DML_MOCA_FLOW pFlow = &(*ppConf)[i];
+            errno_t rc = memcpy_s(pFlow->DestinationMACAddress, sizeof(pFlow->DestinationMACAddress),
+                                 pflow_table[i].DestinationMACAddress, sizeof(pFlow->DestinationMACAddress));
+            if (rc != EOK)
+            {
+                ERR_CHK(rc);
+                AnscFreeMemory(pflow_table);
+                AnscFreeMemory(*ppConf);
+                *ppConf = NULL;
+                *pCount = 0;
+                return ANSC_STATUS_FAILURE;
+            }
+
+            pFlow->FlowID        = pflow_table[i].FlowID;
+            pFlow->IngressNodeID = pflow_table[i].IngressNodeID;
+            pFlow->EgressNodeID  = pflow_table[i].EgressNodeID;
+            pFlow->FlowTimeLeft  = pflow_table[i].FlowTimeLeft;
+            pFlow->PacketSize    = pflow_table[i].PacketSize;
+            pFlow->PeakDataRate  = pflow_table[i].PeakDataRate;
+            pFlow->BurstSize     = pflow_table[i].BurstSize;
+            pFlow->FlowTag       = pflow_table[i].FlowTag;
+            pFlow->LeaseTime     = pflow_table[i].LeaseTime;
+        }
+    }
+
+    AnscFreeMemory(pflow_table);
     
     return ANSC_STATUS_SUCCESS;
 }
@@ -2692,5 +2734,4 @@ BOOL CosaDmlmocaUnpack(char* blob)
 }
 
 #endif
-
 

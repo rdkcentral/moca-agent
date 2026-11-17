@@ -18,11 +18,13 @@
 */
 
 #include "moca_mock.h"
+#include <memory>
 
 extern "C"
 {
     #include "cosa_moca_apis.h"
     #include "cosa_moca_internal.h"
+    #include "cosa_moca_dml.h"
 
     int consoleDebugEnable;
     FILE* debugLogFile = nullptr;
@@ -707,18 +709,93 @@ TEST_F(CcspMoCATestFixture, CosaDmlMocaIfMeshTableGetTableFailure)
 //Test for CosaDmlMocaIfFlowTableGetTable - Success
 TEST_F(CcspMoCATestFixture, CosaDmlMocaIfFlowTableGetTableSuccess)
 {
-    ULONG uIndex = 0; // Set the desired interface index
+    extern ANSC_HANDLE g_MoCAObject;
+    moca_flow_table_t halFlows[2] = {};
+    for (ULONG i = 0; i < 2; i++)
+    {
+        halFlows[i].FlowID = 10 + i;
+        halFlows[i].IngressNodeID = 2 + i;
+        halFlows[i].EgressNodeID = 4 + i;
+        halFlows[i].FlowTimeLeft = 100 + i;
+        halFlows[i].PacketSize = 1000 + i;
+        halFlows[i].PeakDataRate = 2000 + i;
+        halFlows[i].BurstSize = 3000 + i;
+        halFlows[i].FlowTag = 4000 + i;
+        halFlows[i].LeaseTime = 5000 + i;
+    }
+    memcpy(halFlows[0].DestinationMACAddress, "01:00:5e:00:00:01", 18);
+    memcpy(halFlows[1].DestinationMACAddress, "01:00:5e:00:00:02", 18);
+
+    EXPECT_CALL(*g_mocaHALMock, moca_HardwareEquipped()).Times(AnyNumber()).WillRepeatedly(Return(1));
+    EXPECT_CALL(*g_syscfgMock, syscfg_get(_,_,_,_)).Times(AnyNumber()).WillRepeatedly(Return(0));
+    ASSERT_EQ(ANSC_STATUS_SUCCESS, CosaDmlMocaInit(NULL, NULL));
+
     ULONG count = 0;
     PCOSA_DML_MOCA_FLOW pConf = NULL;
 
-    EXPECT_CALL(*g_mocaHALMock, moca_GetFlowStatistics(_,_,_)).Times(1).WillOnce(Return(0));
+    EXPECT_CALL(*g_mocaHALMock, moca_GetFlowStatistics(0,_,_))
+        .WillOnce(Invoke([&](ULONG, moca_flow_table_t *flows, ULONG *capacity) {
+            EXPECT_GE(*capacity, 2UL);
+            flows[0] = halFlows[0];
+            flows[1] = halFlows[1];
+            *capacity = 2;
+            return 0;
+        }));
+    EXPECT_CALL(*g_safecLibMock, _memcpy_s_chk(_,_,_,_,_,_)).Times(2)
+        .WillRepeatedly(WithArgs<0, 1, 2, 3>(Invoke(
+            [](void *dest, size_t destSize, const void *src, size_t size) {
+                EXPECT_LE(size, destSize);
+                memcpy(dest, src, size);
+                return 0;
+            })));
+    EXPECT_CALL(*g_anscMemoryMock, AnscFreeMemory(_))
+        .WillOnce(Invoke([](void *memory) { free(memory); }));
 
-    ANSC_STATUS status = CosaDmlMocaIfFlowTableGetTable(NULL, uIndex, &pConf, &count);
+    ANSC_STATUS status = CosaDmlMocaIfFlowTableGetTable(NULL, 0, &pConf, &count);
+    std::unique_ptr<COSA_DML_MOCA_FLOW, decltype(&free)> flows(pConf, &free);
+    ASSERT_EQ(ANSC_STATUS_SUCCESS, status);
+    ASSERT_EQ(2UL, count);
+    ASSERT_NE(nullptr, pConf);
 
-    EXPECT_EQ(ANSC_STATUS_SUCCESS, status);
+    auto verifyFlow = [](const COSA_DML_MOCA_FLOW &flow, const moca_flow_table_t &expected) {
+        EXPECT_EQ(expected.FlowID, flow.FlowID);
+        EXPECT_EQ(expected.IngressNodeID, flow.IngressNodeID);
+        EXPECT_EQ(expected.EgressNodeID, flow.EgressNodeID);
+        EXPECT_EQ(expected.FlowTimeLeft, flow.FlowTimeLeft);
+        EXPECT_STREQ(expected.DestinationMACAddress, flow.DestinationMACAddress);
+        EXPECT_EQ(expected.PacketSize, flow.PacketSize);
+        EXPECT_EQ(expected.PeakDataRate, flow.PeakDataRate);
+        EXPECT_EQ(expected.BurstSize, flow.BurstSize);
+        EXPECT_EQ(expected.FlowTag, flow.FlowTag);
+        EXPECT_EQ(expected.LeaseTime, flow.LeaseTime);
+    };
 
-    free(pConf);
-    pConf = NULL;
+    COSA_DATAMODEL_MOCA moca = {};
+    COSA_DML_MOCA_IF_FULL interface = {};
+    interface.Cfg.InstanceNumber = 1;
+    moca.MoCAIfFullTable[0].pMoCAFlowTable = pConf;
+    moca.MoCAIfFullTable[0].ulMoCAFlowTableCount = count;
+    ANSC_HANDLE savedObject = g_MoCAObject;
+    g_MoCAObject = &moca;
+
+    EXPECT_EQ(2UL, FlowStats_GetEntryCount(&interface));
+    for (ULONG i = 0; i < count; i++)
+    {
+        SCOPED_TRACE(i);
+        verifyFlow(pConf[i], halFlows[i]);
+        ULONG instanceNumber = 0;
+        PCOSA_DML_MOCA_FLOW entry = static_cast<PCOSA_DML_MOCA_FLOW>(
+            FlowStats_GetEntry(&interface, i, &instanceNumber));
+        EXPECT_EQ(&pConf[i], entry);
+        EXPECT_EQ(i + 1, instanceNumber);
+        if (entry)
+        {
+            verifyFlow(*entry, halFlows[i]);
+        }
+    }
+    ULONG instanceNumber = 0;
+    EXPECT_EQ(nullptr, FlowStats_GetEntry(&interface, count, &instanceNumber));
+    g_MoCAObject = savedObject;
 }
 
 //Test for CosaDmlMocaIfFlowTableGetTable - Failure
@@ -734,6 +811,8 @@ TEST_F(CcspMoCATestFixture, CosaDmlMocaIfFlowTableGetTableFailure)
     ANSC_STATUS status = CosaDmlMocaIfFlowTableGetTable(NULL, uIndex, &pConf, &count);
 
     EXPECT_EQ(ANSC_STATUS_FAILURE, status);
+    EXPECT_EQ(0UL, count);
+    EXPECT_EQ(nullptr, pConf);
 
     free(pConf);
     pConf = NULL;

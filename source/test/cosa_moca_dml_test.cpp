@@ -3107,9 +3107,12 @@ TEST_F(CcspMoCATestFixture, FlowStats_SynchronizeSuccess)
 
     g_MoCAObject = (ANSC_HANDLE)pMoCA;
 
-    EXPECT_CALL(*g_mocaHALMock, moca_GetFlowStatistics(_,_,_)).Times(1).WillOnce(Return(0));
-    EXPECT_CALL(*g_anscMemoryMock, AnscFreeMemory(_)).Times(1);
+    EXPECT_CALL(*g_mocaHALMock, moca_GetFlowStatistics(_,_,_))
+        .WillOnce(DoAll(SetArgPointee<2>(0UL), Return(0)));
+    EXPECT_CALL(*g_anscMemoryMock, AnscFreeMemory(_)).Times(2);
     EXPECT_EQ(FlowStats_Synchronize((ANSC_HANDLE)pMoCAIfFull), 0);
+    EXPECT_EQ(0UL, pMoCA->MoCAIfFullTable[0].ulMoCAFlowTableCount);
+    EXPECT_EQ(nullptr, pMoCA->MoCAIfFullTable[0].pMoCAFlowTable);
 
     free(pMoCAIfFull);
     pMoCAIfFull = NULL;

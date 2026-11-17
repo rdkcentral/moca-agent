@@ -798,6 +798,110 @@ TEST_F(CcspMoCATestFixture, CosaDmlMocaIfFlowTableGetTableSuccess)
     g_MoCAObject = savedObject;
 }
 
+TEST_F(CcspMoCATestFixture, CosaDmlMocaIfFlowTableGetTableMaxNodes)
+{
+    EXPECT_CALL(*g_mocaHALMock, moca_HardwareEquipped()).Times(AnyNumber()).WillRepeatedly(Return(1));
+    EXPECT_CALL(*g_syscfgMock, syscfg_get(_,_,_,_)).Times(AnyNumber()).WillRepeatedly(Return(0));
+    ASSERT_EQ(ANSC_STATUS_SUCCESS, CosaDmlMocaInit(NULL, NULL));
+
+    moca_flow_table_t halFlows[kMoca_MaxMocaNodes] = {};
+    for (ULONG i = 0; i < kMoca_MaxMocaNodes; i++)
+    {
+        halFlows[i].FlowID = 10 + i;
+        halFlows[i].IngressNodeID = 20 + i;
+        halFlows[i].EgressNodeID = 30 + i;
+        halFlows[i].FlowTimeLeft = 100 + i;
+        snprintf(halFlows[i].DestinationMACAddress, sizeof(halFlows[i].DestinationMACAddress),
+                 "01:00:5e:00:%02x:%02x", static_cast<unsigned int>((i >> 8) & 0xff),
+                 static_cast<unsigned int>(i & 0xff));
+        halFlows[i].PacketSize = 1000 + i;
+        halFlows[i].PeakDataRate = 2000 + i;
+        halFlows[i].BurstSize = 3000 + i;
+        halFlows[i].FlowTag = 4000 + i;
+        halFlows[i].LeaseTime = 5000 + i;
+    }
+
+    moca_flow_table_t *halBuffer = nullptr;
+    EXPECT_CALL(*g_mocaHALMock, moca_GetFlowStatistics(0,_,_))
+        .WillOnce(Invoke([&](ULONG, moca_flow_table_t *flows, ULONG *capacity) {
+            halBuffer = flows;
+            EXPECT_EQ(static_cast<ULONG>(kMoca_MaxMocaNodes), *capacity);
+            for (ULONG i = 0; i < kMoca_MaxMocaNodes; i++)
+            {
+                flows[i] = halFlows[i];
+            }
+            *capacity = kMoca_MaxMocaNodes;
+            return 0;
+        }));
+    EXPECT_CALL(*g_safecLibMock, _memcpy_s_chk(_,_,_,_,_,_)).Times(kMoca_MaxMocaNodes)
+        .WillRepeatedly(WithArgs<0, 1, 2, 3>(Invoke(
+            [](void *dest, size_t destSize, const void *src, size_t size) {
+                EXPECT_LE(size, destSize);
+                memcpy(dest, src, size);
+                return 0;
+            })));
+    EXPECT_CALL(*g_anscMemoryMock, AnscFreeMemory(_))
+        .WillOnce(Invoke([&](void *memory) {
+            EXPECT_NE(nullptr, halBuffer);
+            EXPECT_EQ(halBuffer, memory);
+            free(memory);
+        }));
+
+    ULONG count = 0;
+    PCOSA_DML_MOCA_FLOW pConf = nullptr;
+    ANSC_STATUS status = CosaDmlMocaIfFlowTableGetTable(NULL, 0, &pConf, &count);
+    std::unique_ptr<COSA_DML_MOCA_FLOW, decltype(&free)> flows(pConf, &free);
+    ASSERT_EQ(ANSC_STATUS_SUCCESS, status);
+    ASSERT_EQ(static_cast<ULONG>(kMoca_MaxMocaNodes), count);
+    ASSERT_NE(nullptr, pConf);
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(halFlows[i].FlowID, pConf[i].FlowID);
+        EXPECT_EQ(halFlows[i].IngressNodeID, pConf[i].IngressNodeID);
+        EXPECT_EQ(halFlows[i].EgressNodeID, pConf[i].EgressNodeID);
+        EXPECT_EQ(halFlows[i].FlowTimeLeft, pConf[i].FlowTimeLeft);
+        EXPECT_STREQ(halFlows[i].DestinationMACAddress, pConf[i].DestinationMACAddress);
+        EXPECT_EQ(halFlows[i].PacketSize, pConf[i].PacketSize);
+        EXPECT_EQ(halFlows[i].PeakDataRate, pConf[i].PeakDataRate);
+        EXPECT_EQ(halFlows[i].BurstSize, pConf[i].BurstSize);
+        EXPECT_EQ(halFlows[i].FlowTag, pConf[i].FlowTag);
+        EXPECT_EQ(halFlows[i].LeaseTime, pConf[i].LeaseTime);
+    }
+}
+
+TEST_F(CcspMoCATestFixture, CosaDmlMocaIfFlowTableGetTableTooManyNodes)
+{
+    EXPECT_CALL(*g_mocaHALMock, moca_HardwareEquipped()).Times(AnyNumber()).WillRepeatedly(Return(1));
+    EXPECT_CALL(*g_syscfgMock, syscfg_get(_,_,_,_)).Times(AnyNumber()).WillRepeatedly(Return(0));
+    ASSERT_EQ(ANSC_STATUS_SUCCESS, CosaDmlMocaInit(NULL, NULL));
+
+    moca_flow_table_t *halBuffer = nullptr;
+    EXPECT_CALL(*g_mocaHALMock, moca_GetFlowStatistics(0,_,_))
+        .WillOnce(Invoke([&](ULONG, moca_flow_table_t *flows, ULONG *capacity) {
+            halBuffer = flows;
+            EXPECT_EQ(static_cast<ULONG>(kMoca_MaxMocaNodes), *capacity);
+            // Report an invalid count without writing past the supplied capacity.
+            *capacity = kMoca_MaxMocaNodes + 1;
+            return 0;
+        }));
+    EXPECT_CALL(*g_safecLibMock, _memcpy_s_chk(_,_,_,_,_,_)).Times(0);
+    EXPECT_CALL(*g_anscMemoryMock, AnscFreeMemory(_))
+        .WillOnce(Invoke([&](void *memory) {
+            EXPECT_NE(nullptr, halBuffer);
+            EXPECT_EQ(halBuffer, memory);
+            free(memory);
+        }));
+
+    COSA_DML_MOCA_FLOW sentinel = {};
+    PCOSA_DML_MOCA_FLOW pConf = &sentinel;
+    ULONG count = 1;
+    EXPECT_EQ(ANSC_STATUS_FAILURE, CosaDmlMocaIfFlowTableGetTable(NULL, 0, &pConf, &count));
+    EXPECT_EQ(nullptr, pConf);
+    EXPECT_EQ(0UL, count);
+}
+
 //Test for CosaDmlMocaIfFlowTableGetTable - Failure
 TEST_F(CcspMoCATestFixture, CosaDmlMocaIfFlowTableGetTableFailure)
 {

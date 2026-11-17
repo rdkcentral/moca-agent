@@ -1830,8 +1830,9 @@ CosaDmlMocaIfFlowTableGetTable
         for (i = 0; i < *pCount; i++)
         {
             PCOSA_DML_MOCA_FLOW pFlow = &(*ppConf)[i];
+            char *pDestinationMACAddress = pflow_table[i].DestinationMACAddress;
             errno_t rc = memcpy_s(pFlow->DestinationMACAddress, sizeof(pFlow->DestinationMACAddress),
-                                 pflow_table[i].DestinationMACAddress, sizeof(pFlow->DestinationMACAddress));
+                                 pDestinationMACAddress, sizeof(pFlow->DestinationMACAddress));
             if (rc != EOK)
             {
                 ERR_CHK(rc);
@@ -2734,4 +2735,3 @@ BOOL CosaDmlmocaUnpack(char* blob)
 }
 
 #endif
-

@@ -1785,23 +1785,65 @@ CosaDmlMocaIfFlowTableGetTable
     }
 
     *pCount = kMoca_MaxMocaNodes;
-    *ppConf = (PCOSA_DML_MOCA_FLOW)AnscAllocateMemory(sizeof(COSA_DML_MOCA_FLOW) * kMoca_MaxMocaNodes);
 
-    if ( !*ppConf )
+    /* Coverity CID 96: OVERRUN — moca_flow_table_t can be larger than COSA_DML_MOCA_FLOW,
+     * so get the HAL data into a correctly-sized temp buffer, then translate it. */
+    moca_flow_table_t *pflow_table = (moca_flow_table_t *)AnscAllocateMemory(sizeof(moca_flow_table_t) * kMoca_MaxMocaNodes);
+
+    if ( !pflow_table )
     {
         *pCount = 0;
         return ANSC_STATUS_FAILURE;
     }
-    
-    if (moca_GetFlowStatistics(ulInterfaceIndex, (moca_flow_table_t*)*ppConf, pCount) != STATUS_SUCCESS)
+
+    if (moca_GetFlowStatistics(ulInterfaceIndex, pflow_table, pCount) != STATUS_SUCCESS)
     {
-        AnscFreeMemory(*ppConf);
+        AnscFreeMemory(pflow_table);
         *ppConf = NULL;
         *pCount = 0;
         AnscTraceError(("%s: fail to get MoCA flow table\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
-    
+
+    *ppConf = (PCOSA_DML_MOCA_FLOW)AnscAllocateMemory(sizeof(COSA_DML_MOCA_FLOW) * (*pCount));
+
+    if ( !*ppConf )
+    {
+        AnscFreeMemory(pflow_table);
+        *pCount = 0;
+        return ANSC_STATUS_FAILURE;
+    }
+
+    {
+        unsigned int i;
+        PCOSA_DML_MOCA_FLOW pFlowTable = *ppConf;
+        errno_t rc = -1;
+
+        for (i = 0; i < *pCount; i++)
+        {
+            pFlowTable[i].FlowID         = pflow_table[i].FlowID;
+            pFlowTable[i].IngressNodeID  = pflow_table[i].IngressNodeID;
+            pFlowTable[i].EgressNodeID   = pflow_table[i].EgressNodeID;
+            pFlowTable[i].FlowTimeLeft   = pflow_table[i].FlowTimeLeft;
+            rc = STRCPY_S_NOCLOBBER(pFlowTable[i].DestinationMACAddress, sizeof(pFlowTable[i].DestinationMACAddress), pflow_table[i].DestinationMACAddress);
+            if (rc != EOK)
+            {
+                ERR_CHK(rc);
+                AnscFreeMemory(pflow_table);
+                AnscFreeMemory(*ppConf);
+                *ppConf = NULL;
+                *pCount = 0;
+                return ANSC_STATUS_FAILURE;
+            }
+            pFlowTable[i].PacketSize     = pflow_table[i].PacketSize;
+            pFlowTable[i].PeakDataRate   = pflow_table[i].PeakDataRate;
+            pFlowTable[i].BurstSize      = pflow_table[i].BurstSize;
+            pFlowTable[i].FlowTag        = pflow_table[i].FlowTag;
+        }
+    }
+
+    AnscFreeMemory(pflow_table);
+
     return ANSC_STATUS_SUCCESS;
 }
 

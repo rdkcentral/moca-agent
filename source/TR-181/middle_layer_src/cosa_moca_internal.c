@@ -224,7 +224,11 @@ void CosaMoCAUpdate()
 
 	if (sysevent_fd >= 0)
 	{
-		pthread_create(&sysevent_tid, NULL, Moca_sysevent_handler, NULL);
+		int err = pthread_create(&sysevent_tid, NULL, Moca_sysevent_handler, NULL);
+		if (0 != err)
+		{
+			CcspTraceError(("%s: Error creating Moca_sysevent_handler thread %d!\n", __FUNCTION__, err));
+		}
 	}
 	return;
 }
